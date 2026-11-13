@@ -1,25 +1,19 @@
 import type { ReactNode } from "react";
-import { getColor, getFill, getModel, getPattern } from "@/data/catalog";
+import { getColor, getFill, getModel } from "@/data/catalog";
 import type { OrderValues } from "@/lib/validation";
 
 const EMPTY = "—";
-
-function Swatch({ hex }: { hex: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block h-4 w-4 shrink-0 rounded-full border border-white/60"
-      style={{ backgroundColor: hex }}
-    />
-  );
-}
 
 function ColorValue({ id }: { id: string | null }) {
   const color = getColor(id);
   if (!color) return <>{EMPTY}</>;
   return (
     <span className="inline-flex items-center gap-2">
-      <Swatch hex={color.hex} />
+      <span
+        aria-hidden="true"
+        className="inline-block h-4 w-4 shrink-0 rounded-full border border-white/60"
+        style={{ backgroundColor: color.hex }}
+      />
       {color.name}
     </span>
   );
@@ -27,35 +21,26 @@ function ColorValue({ id }: { id: string | null }) {
 
 function fillValue(values: OrderValues): ReactNode {
   const fill = getFill(values.fillId);
-  if (fill.id === "single") {
-    return (
-      <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
-        {fill.name}: <ColorValue id={values.fillColorId} />
-      </span>
-    );
-  }
-  if (fill.id === "double") {
-    return (
-      <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
-        {fill.name}: <ColorValue id={values.fillColorId} />
-        <ColorValue id={values.fillColor2Id} />
-      </span>
-    );
-  }
-  if (fill.id === "pattern") return `${fill.name}: ${getPattern(values.patternId)?.name ?? EMPTY}`;
-  return fill.name;
+  if (fill.id === "none") return fill.name;
+  return (
+    <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
+      {fill.name}: <ColorValue id={values.fillColorId} />
+    </span>
+  );
 }
 
 export default function OrderSummary({ values }: { values: OrderValues }) {
+  const personalText = values.personalText.trim();
+  const note = values.note.trim();
+
   const rows: [string, ReactNode][] = [
     ["דגם", getModel(values.modelId)?.name ?? EMPTY],
-    ["צבע", <ColorValue key="c" id={values.colorId} />],
+    ["צבע", <ColorValue key="color" id={values.colorId} />],
     ["מילוי", fillValue(values)],
-    ["טקסט אישי", values.personalText.trim() || EMPTY],
+    ...(personalText ? ([["טקסט אישי", personalText]] as [string, ReactNode][]) : []),
     ["שם מלא", values.fullName.trim() || EMPTY],
     ["טלפון", values.phone.trim() || EMPTY],
   ];
-  const note = values.note.trim();
 
   return (
     <dl className="space-y-3 text-sm">
@@ -73,6 +58,13 @@ export default function OrderSummary({ values }: { values: OrderValues }) {
           <dd className="mt-1 break-words whitespace-pre-wrap">{note}</dd>
         </div>
       )}
+      <div className="rounded-xl bg-white/10 px-3 py-2">
+        <dt className="sr-only">מבנה המזוזה</dt>
+        <dd>
+          <span className="font-medium">המזוזה סגורה מאחור</span>
+          <span className="block text-xs text-[#d9c39a]">למראה נקי ולשמירה על הקלף</span>
+        </dd>
+      </div>
     </dl>
   );
 }

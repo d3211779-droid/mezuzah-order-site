@@ -7,6 +7,7 @@ import {
   FIELD_ORDER,
   MAX_NOTE,
   MAX_PERSONAL_TEXT,
+  PERSONAL_TEXT_WIDTH_CM,
   validateOrder,
   type FieldKey,
   type OrderValues,
@@ -24,8 +25,6 @@ const INITIAL: OrderValues = {
   colorId: null,
   fillId: "none",
   fillColorId: null,
-  fillColor2Id: null,
-  patternId: null,
   personalText: "",
   fullName: "",
   phone: "",
@@ -120,7 +119,7 @@ export default function OrderBuilder() {
           <SectionCard
             step={4}
             title="טקסט אישי"
-            hint="אפשר להוסיף שם או ברכה קצרה, באותיות עבריות בלבד (אזור הטקסט ברוחב 2.3 ס״מ). לא חובה."
+            hint="אפשר להוסיף שם או מילה קצרה, באותיות עבריות בלבד. לא חובה."
           >
             <input
               id="personalText"
@@ -130,18 +129,15 @@ export default function OrderBuilder() {
               value={values.personalText}
               onChange={(e) => update("personalText", e.target.value)}
               onBlur={() => blur("personalText")}
-              placeholder="לדוגמה: משפחת כהן"
+              placeholder="לדוגמה: כהן"
               aria-label="טקסט אישי"
               aria-invalid={!!textError}
               aria-describedby="personalText-help"
-              className={inputClass(!!textError)}
+              className={`${inputClass(!!textError)} max-w-44 text-center`}
             />
-            <div
-              id="personalText-help"
-              className="mt-2 flex justify-between gap-3 text-sm"
-            >
+            <div id="personalText-help" className="mt-2 flex max-w-44 items-start justify-between gap-3 text-sm">
               <span className={textError ? "font-medium text-error" : "text-brown-soft"}>
-                {textError ?? `עד ${MAX_PERSONAL_TEXT} תווים, בעברית בלבד`}
+                {textError ?? "בעברית בלבד"}
               </span>
               <span
                 dir="ltr"
@@ -150,6 +146,9 @@ export default function OrderBuilder() {
                 {textLength}/{MAX_PERSONAL_TEXT}
               </span>
             </div>
+            <p className="mt-3 text-sm text-brown-soft">
+              הכיתוב מותאם לשטח הדפסה ברוחב כ־{PERSONAL_TEXT_WIDTH_CM} ס״מ
+            </p>
           </SectionCard>
 
           <SectionCard step={5} title="פרטים ליצירת קשר">

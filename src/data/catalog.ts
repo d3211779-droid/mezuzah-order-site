@@ -1,9 +1,13 @@
-﻿export type ModelId = "flame" | "israel" | "shin";
+/** Which drawing the live preview uses for a model. */
+export type GlyphId = "flame" | "shin";
 
 export type MezuzahModel = {
-  id: ModelId;
+  id: string;
   name: string;
-  description: string;
+  glyph: GlyphId;
+  /** Path inside /public, always starting with /images/mezuzahs/ (lowercase - case-sensitive on Vercel). */
+  image: string;
+  imageAlt: string;
 };
 
 export type ProductColor = {
@@ -13,7 +17,7 @@ export type ProductColor = {
   available: boolean;
 };
 
-export type FillId = "none" | "single" | "double" | "pattern";
+export type FillId = "none" | "single";
 
 export type FillOption = {
   id: FillId;
@@ -22,9 +26,69 @@ export type FillOption = {
 };
 
 export const models: MezuzahModel[] = [
-  { id: "flame", name: "להבה", description: "קווים חמים ונקיים" },
-  { id: "israel", name: "מפת ישראל", description: "סמל אהוב ומוכר" },
-  { id: "shin", name: "ש׳ מודרנית", description: "האות ש׳ בעיצוב עכשווי" },
+  {
+    id: "flame-large",
+    name: "אש גדול",
+    glyph: "flame",
+    image: "/images/mezuzahs/flame-large.jpg",
+    imageAlt: "מזוזה בדגם אש גדול",
+  },
+  {
+    id: "flame-small",
+    name: "אש קטן",
+    glyph: "flame",
+    image: "/images/mezuzahs/flame-small.jpg",
+    imageAlt: "מזוזה בדגם אש קטן",
+  },
+  {
+    id: "flame-side-large",
+    name: "אש שלי על הצד גדול",
+    glyph: "flame",
+    image: "/images/mezuzahs/flame-side-large.jpg",
+    imageAlt: "מזוזה בדגם אש שלי על הצד גדול",
+  },
+  {
+    id: "flame-side-small",
+    name: "אש שלי על הצד קטן",
+    glyph: "flame",
+    image: "/images/mezuzahs/flame-side-small.jpg",
+    imageAlt: "מזוזה בדגם אש שלי על הצד קטן",
+  },
+  {
+    id: "shin-large",
+    name: "ש גדול",
+    glyph: "shin",
+    image: "/images/mezuzahs/shin-large.jpg",
+    imageAlt: "מזוזה בדגם ש גדול",
+  },
+  {
+    id: "shin-small",
+    name: "ש קטן",
+    glyph: "shin",
+    image: "/images/mezuzahs/shin-small.jpg",
+    imageAlt: "מזוזה בדגם ש קטן",
+  },
+  {
+    id: "shin-smallest",
+    name: "ש הכי קטן",
+    glyph: "shin",
+    image: "/images/mezuzahs/shin-smallest.jpg",
+    imageAlt: "מזוזה בדגם ש הכי קטן",
+  },
+  {
+    id: "shin-regular-large",
+    name: "ש רגילה גדול",
+    glyph: "shin",
+    image: "/images/mezuzahs/shin-regular-large.jpg",
+    imageAlt: "מזוזה בדגם ש רגילה גדול",
+  },
+  {
+    id: "shin-regular-small",
+    name: "ש רגילה קטן",
+    glyph: "shin",
+    image: "/images/mezuzahs/shin-regular-small.jpg",
+    imageAlt: "מזוזה בדגם ש רגילה קטן",
+  },
 ];
 
 export const colors: ProductColor[] = [
@@ -40,24 +104,7 @@ export const colors: ProductColor[] = [
 export const fills: FillOption[] = [
   { id: "none", name: "ללא מילוי", description: "גוף אחיד וחלק" },
   { id: "single", name: "צבע אחד", description: "מילוי בצבע לבחירתכם" },
-  { id: "double", name: "שני צבעים", description: "מילוי דו־גווני" },
-  { id: "pattern", name: "דוגמה", description: "דוגמה מהרשימה" },
 ];
-
-export type PatternId = "stripes" | "dots" | "grid";
-
-export type PatternOption = { id: PatternId; name: string };
-
-// Temporary examples - the real list will be managed from the admin panel later.
-export const patterns: PatternOption[] = [
-  { id: "stripes", name: "פסים" },
-  { id: "dots", name: "נקודות" },
-  { id: "grid", name: "משבצות" },
-];
-
-export function getPattern(id: string | null) {
-  return patterns.find((p) => p.id === id) ?? null;
-}
 
 export function getModel(id: string | null) {
   return models.find((m) => m.id === id) ?? null;

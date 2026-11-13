@@ -15,7 +15,7 @@ export default function SectionCard({ id, step, title, hint, error, children }: 
       id={id}
       tabIndex={id ? -1 : undefined}
       aria-labelledby={id ? `${id}-title` : undefined}
-      className={`scroll-mt-4 rounded-3xl border bg-white p-5 shadow-sm outline-none md:p-7 ${
+      className={`scroll-mt-4 rounded-3xl border bg-white p-4 shadow-sm outline-none sm:p-5 md:p-7 ${
         error ? "border-error" : "border-line"
       }`}
     >

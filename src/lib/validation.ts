@@ -1,6 +1,9 @@
-import { getColor, getModel, getPattern } from "@/data/catalog";
+import { getColor, getModel } from "@/data/catalog";
 
-export const MAX_PERSONAL_TEXT = 15;
+/** Max characters for the personal text - the only place to change it. */
+export const MAX_PERSONAL_TEXT = 8;
+/** Printable text width on the mezuzah, shown in the helper text. */
+export const PERSONAL_TEXT_WIDTH_CM = 2.5;
 export const MAX_NOTE = 300;
 
 export type OrderValues = {
@@ -8,8 +11,6 @@ export type OrderValues = {
   colorId: string | null;
   fillId: string;
   fillColorId: string | null;
-  fillColor2Id: string | null;
-  patternId: string | null;
   personalText: string;
   fullName: string;
   phone: string;
@@ -47,17 +48,8 @@ export function validateOrder(values: OrderValues): OrderErrors {
   if (!color) errors.color = "יש לבחור צבע";
   else if (!color.available) errors.color = "הצבע שנבחר אינו זמין";
 
-  const fillColorOk = (id: string | null) => getColor(id)?.available === true;
-  if (values.fillId === "single" && !fillColorOk(values.fillColorId)) {
+  if (values.fillId === "single" && getColor(values.fillColorId)?.available !== true) {
     errors.fill = "יש לבחור צבע למילוי";
-  } else if (values.fillId === "double") {
-    if (!fillColorOk(values.fillColorId) || !fillColorOk(values.fillColor2Id)) {
-      errors.fill = "יש לבחור שני צבעים למילוי";
-    } else if (values.fillColorId === values.fillColor2Id) {
-      errors.fill = "יש לבחור שני צבעים שונים";
-    }
-  } else if (values.fillId === "pattern" && !getPattern(values.patternId)) {
-    errors.fill = "יש לבחור דוגמה למילוי";
   }
 
   const text = values.personalText.trim();
