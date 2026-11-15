@@ -1,4 +1,4 @@
-import { getColor, getModel } from "@/data/catalog";
+import type { Catalog } from "@/lib/catalog/types";
 
 /** Max characters for the personal text - the only place to change it. */
 export const MAX_PERSONAL_TEXT = 8;
@@ -39,16 +39,19 @@ export function normalizePhone(raw: string): string {
   return intl ? `0${intl[2]}` : cleaned;
 }
 
-export function validateOrder(values: OrderValues): OrderErrors {
+/** Validates against the live catalog: it only holds active models and available colours / fills. */
+export function validateOrder(values: OrderValues, catalog: Catalog): OrderErrors {
   const errors: OrderErrors = {};
+  const hasColor = (id: string | null) => catalog.colors.some((c) => c.id === id);
 
-  if (!getModel(values.modelId)) errors.model = "יש לבחור דגם";
+  if (!catalog.models.some((m) => m.id === values.modelId)) errors.model = "יש לבחור דגם";
 
-  const color = getColor(values.colorId);
-  if (!color) errors.color = "יש לבחור צבע";
-  else if (!color.available) errors.color = "הצבע שנבחר אינו זמין";
+  if (!values.colorId) errors.color = "יש לבחור צבע";
+  else if (!hasColor(values.colorId)) errors.color = "הצבע שנבחר אינו זמין";
 
-  if (values.fillId === "single" && getColor(values.fillColorId)?.available !== true) {
+  if (!catalog.fills.some((f) => f.id === values.fillId)) {
+    errors.fill = "יש לבחור סוג מילוי";
+  } else if (values.fillId === "single" && !hasColor(values.fillColorId)) {
     errors.fill = "יש לבחור צבע למילוי";
   }
 

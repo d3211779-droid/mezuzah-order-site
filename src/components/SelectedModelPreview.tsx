@@ -1,4 +1,4 @@
-import { getColor, getModel } from "@/data/catalog";
+import { useCatalog } from "@/lib/catalog/context";
 import type { OrderValues } from "@/lib/validation";
 import ZoomableModelImage from "./ZoomableModelImage";
 
@@ -7,6 +7,7 @@ import ZoomableModelImage from "./ZoomableModelImage";
  * recoloured from the customer's body / fill choices (colours come from the catalog).
  */
 export default function SelectedModelPreview({ values }: { values: OrderValues }) {
+  const { getModel, getColor } = useCatalog();
   const model = getModel(values.modelId);
   const tint = {
     bodyHex: getColor(values.colorId)?.hex ?? null,

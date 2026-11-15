@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { MezuzahModel } from "@/data/catalog";
+import type { Model } from "@/lib/catalog/types";
 import ModelImage, { type Tint } from "./ModelImage";
 
-function Lightbox({ model, tint, onClose }: { model: MezuzahModel; tint?: Tint; onClose: () => void }) {
+function Lightbox({ model, tint, onClose }: { model: Model; tint?: Tint; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ function Lightbox({ model, tint, onClose }: { model: MezuzahModel; tint?: Tint; 
 }
 
 type Props = {
-  model: MezuzahModel;
+  model: Model;
   className?: string;
   sizes: string;
   preload?: boolean;

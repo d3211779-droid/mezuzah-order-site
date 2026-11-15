@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
-import { getColor, getFill, getModel } from "@/data/catalog";
+import { useCatalog } from "@/lib/catalog/context";
 import type { OrderValues } from "@/lib/validation";
 
 const EMPTY = "—";
 
 function ColorValue({ id }: { id: string | null }) {
+  const { getColor } = useCatalog();
   const color = getColor(id);
   if (!color) return <>{EMPTY}</>;
   return (
@@ -20,16 +21,18 @@ function ColorValue({ id }: { id: string | null }) {
 }
 
 export default function OrderSummary({ values }: { values: OrderValues }) {
+  const { getModel, getFill } = useCatalog();
   const personalText = values.personalText.trim();
   const note = values.note.trim();
 
   const fill = getFill(values.fillId);
+  const fillKind = fill?.id ?? "none";
 
   const rows: [string, ReactNode][] = [
     ["דגם", getModel(values.modelId)?.name ?? EMPTY],
     ["צבע גוף", <ColorValue key="body" id={values.colorId} />],
-    ["סוג מילוי", fill.name],
-    ...(fill.id === "single"
+    ["סוג מילוי", fill?.name ?? EMPTY],
+    ...(fillKind === "single"
       ? ([["צבע מילוי", <ColorValue key="fill" id={values.fillColorId} />]] as [string, ReactNode][])
       : []),
     ...(personalText ? ([["טקסט אישי", personalText]] as [string, ReactNode][]) : []),

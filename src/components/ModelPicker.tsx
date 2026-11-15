@@ -1,4 +1,4 @@
-import { models } from "@/data/catalog";
+import { useCatalog } from "@/lib/catalog/context";
 import ZoomableModelImage from "./ZoomableModelImage";
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
  * The photo opens a larger view; the name row below it selects the model.
  */
 export default function ModelPicker({ value, onChange }: Props) {
+  const { models } = useCatalog();
   return (
     <div role="radiogroup" aria-label="דגם" className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-3">
       {models.map((model, index) => {

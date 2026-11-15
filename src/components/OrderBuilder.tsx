@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, type FormEvent } from "react";
+import { useCatalog } from "@/lib/catalog/context";
 import { makeTempOrderNumber } from "@/lib/orderNumber";
 import {
   FIELD_DOM_ID,
@@ -21,16 +22,16 @@ import OrderSummary from "./OrderSummary";
 import SectionCard from "./SectionCard";
 import SelectedModelPreview from "./SelectedModelPreview";
 
-const INITIAL: OrderValues = {
+const initialValues = (defaultFillId: string): OrderValues => ({
   modelId: null,
   colorId: null,
-  fillId: "none",
+  fillId: defaultFillId,
   fillColorId: null,
   personalText: "",
   fullName: "",
   phone: "",
   note: "",
-};
+});
 
 const inputClass = (invalid: boolean) =>
   `w-full min-h-12 rounded-xl border bg-paper px-4 py-3 text-base outline-none transition focus:border-gold focus:ring-2 focus:ring-gold-soft ${
@@ -38,12 +39,15 @@ const inputClass = (invalid: boolean) =>
   }`;
 
 export default function OrderBuilder() {
-  const [values, setValues] = useState<OrderValues>(INITIAL);
+  const catalog = useCatalog();
+  // "No fill" is the default; if it is switched off in the admin panel, the first available fill is used.
+  const defaultFillId = (catalog.fills.find((f) => f.id === "none") ?? catalog.fills[0]).id;
+  const [values, setValues] = useState<OrderValues>(() => initialValues(defaultFillId));
   const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>({});
   const [attempted, setAttempted] = useState(false);
   const [submitted, setSubmitted] = useState<{ order: OrderValues; number: string } | null>(null);
 
-  const errors = validateOrder(values);
+  const errors = validateOrder(values, catalog);
   const shown = (key: FieldKey) =>
     attempted || touched[key] || (key === "personalText" && values.personalText !== "")
       ? errors[key]
@@ -72,7 +76,7 @@ export default function OrderBuilder() {
   }
 
   function reset() {
-    setValues(INITIAL);
+    setValues(initialValues(defaultFillId));
     setTouched({});
     setAttempted(false);
     setSubmitted(null);

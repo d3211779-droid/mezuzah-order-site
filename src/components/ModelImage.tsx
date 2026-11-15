@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, type CSSProperties } from "react";
-import { maskUrl, type MezuzahModel } from "@/data/catalog";
+import type { Model, ModelFit } from "@/lib/catalog/types";
 
 /** Share of the box height the mezuzah itself should fill, the same for every model. */
 const TARGET_HEIGHT = 0.8;
@@ -12,7 +12,7 @@ const FEATHER =
   "linear-gradient(to right, transparent, #000 5%, #000 95%, transparent), linear-gradient(to bottom, transparent, #000 5%, #000 95%, transparent)";
 
 /** CSS-only normalisation: same size, same centre, straightened if the photo leans. */
-function fitStyle({ cx, cy, h, tilt = 0 }: MezuzahModel["fit"]): CSSProperties {
+function fitStyle({ cx, cy, h, tilt = 0 }: ModelFit): CSSProperties {
   const scale = (TARGET_HEIGHT * 1024) / h;
   const x = ((512 - cx) / 1024) * scale * 100;
   const y = ((512 - cy) / 1024) * scale * 100;
@@ -60,12 +60,12 @@ const photoLayer = (src: string): CSSProperties => ({
  *  2. for dark colours, the photo's shading is blended back so details do not vanish,
  *  3. fill colour inside the engraved design only, with the photo's shading multiplied on top.
  */
-function TintLayers({ model, tint }: { model: MezuzahModel; tint: Tint }) {
-  const body = maskUrl(model.id, "body");
-  const fill = maskUrl(model.id, "fill");
+function TintLayers({ model, tint }: { model: Model; tint: Tint }) {
+  const body = model.maskBodyUrl;
+  const fill = model.maskFillUrl;
   return (
     <>
-      {tint.bodyHex && (
+      {body && tint.bodyHex && (
         <>
           <span
             aria-hidden="true"
@@ -76,18 +76,18 @@ function TintLayers({ model, tint }: { model: MezuzahModel; tint: Tint }) {
             <span
               aria-hidden="true"
               className="absolute inset-0"
-              style={{ ...masked(body), ...photoLayer(model.image), mixBlendMode: "overlay", opacity: 0.75 }}
+              style={{ ...masked(body), ...photoLayer(model.imageUrl), mixBlendMode: "overlay", opacity: 0.75 }}
             />
           )}
         </>
       )}
-      {tint.fillHex && (
+      {fill && tint.fillHex && (
         <>
           <span aria-hidden="true" className="absolute inset-0" style={{ ...masked(fill), backgroundColor: tint.fillHex }} />
           <span
             aria-hidden="true"
             className="absolute inset-0"
-            style={{ ...masked(fill), ...photoLayer(model.image), mixBlendMode: "multiply" }}
+            style={{ ...masked(fill), ...photoLayer(model.imageUrl), mixBlendMode: "multiply" }}
           />
         </>
       )}
@@ -96,7 +96,7 @@ function TintLayers({ model, tint }: { model: MezuzahModel; tint: Tint }) {
 }
 
 type Props = {
-  model: MezuzahModel;
+  model: Model;
   /** Tailwind classes for the box (size / aspect ratio). */
   className?: string;
   sizes: string;
@@ -127,10 +127,12 @@ export default function ModelImage({
           התמונה תתעדכן בקרוב
         </span>
       ) : (
-        <span className="absolute inset-0 isolate" style={fit ? fitStyle(model.fit) : undefined}>
+        <span className="absolute inset-0 isolate" style={fit && model.fit ? fitStyle(model.fit) : undefined}>
           <Image
-            src={model.image}
-            alt={model.imageAlt}
+            src={model.imageUrl}
+            alt={`מזוזה בדגם ${model.name}`}
+            // Photos uploaded from the admin panel live on Supabase Storage (remote URL).
+            unoptimized={!model.imageUrl.startsWith("/")}
             fill
             preload={preload}
             sizes={sizes}

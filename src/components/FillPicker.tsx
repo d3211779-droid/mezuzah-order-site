@@ -1,4 +1,4 @@
-import { fills } from "@/data/catalog";
+import { useCatalog } from "@/lib/catalog/context";
 import type { OrderValues } from "@/lib/validation";
 import ColorPicker from "./ColorPicker";
 
@@ -10,6 +10,7 @@ type Props = {
 };
 
 export default function FillPicker({ values, onChange }: Props) {
+  const { fills } = useCatalog();
   return (
     <div>
       <div role="radiogroup" aria-label="סוג מילוי" className="grid grid-cols-2 gap-3">
