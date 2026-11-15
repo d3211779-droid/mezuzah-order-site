@@ -36,7 +36,7 @@ export default function ConfirmationScreen({ order, orderNumber, onReset }: Prop
         </p>
 
         <div className="my-6">
-          <SelectedModelPreview modelId={order.modelId} />
+          <SelectedModelPreview values={order} />
         </div>
 
         <div className="rounded-2xl bg-brown p-5 text-right text-white">

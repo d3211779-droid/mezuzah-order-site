@@ -222,7 +222,7 @@ export default function OrderBuilder() {
 
         <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
           <div className="rounded-3xl border border-line bg-white p-5 shadow-sm">
-            <SelectedModelPreview modelId={values.modelId} />
+            <SelectedModelPreview values={values} />
           </div>
 
           <div className="rounded-3xl bg-brown p-5 text-white md:p-6">

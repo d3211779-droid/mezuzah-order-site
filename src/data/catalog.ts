@@ -118,6 +118,11 @@ export const fills: FillOption[] = [
   { id: "single", name: "צבע אחד", description: "מילוי בצבע לבחירתכם" },
 ];
 
+/** Alpha masks derived from a model photo: silhouette ("body") and engraved design area ("fill"). */
+export function maskUrl(modelId: string, kind: "body" | "fill") {
+  return `/images/mezuzahs/masks/${modelId}-${kind}.png`;
+}
+
 export function getModel(id: string | null) {
   return models.find((m) => m.id === id) ?? null;
 }

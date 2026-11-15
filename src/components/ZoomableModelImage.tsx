@@ -1,11 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import type { MezuzahModel } from "@/data/catalog";
-import ModelImage from "./ModelImage";
+import ModelImage, { type Tint } from "./ModelImage";
 
-function Lightbox({ model, onClose }: { model: MezuzahModel; onClose: () => void }) {
+function Lightbox({ model, tint, onClose }: { model: MezuzahModel; tint?: Tint; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -31,12 +30,12 @@ function Lightbox({ model, onClose }: { model: MezuzahModel; onClose: () => void
         data-lightbox-frame
         className="relative aspect-square w-[min(94vw,82dvh)] max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
-        <Image
-          src={model.image}
-          alt={model.imageAlt}
-          fill
+        <ModelImage
+          model={model}
+          tint={tint}
+          fit={false}
+          className="h-full w-full !rounded-none"
           sizes="(min-width: 768px) 768px, 94vw"
-          className="object-contain p-2"
         />
         <button
           type="button"
@@ -56,10 +55,12 @@ type Props = {
   className?: string;
   sizes: string;
   preload?: boolean;
+  /** Live colours (summary preview); the gallery passes none. */
+  tint?: Tint;
 };
 
 /** A model photo that opens a larger view (lightbox) when pressed. */
-export default function ZoomableModelImage({ model, className, sizes, preload }: Props) {
+export default function ZoomableModelImage({ model, className, sizes, preload, tint }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -70,7 +71,7 @@ export default function ZoomableModelImage({ model, className, sizes, preload }:
         aria-label={`הגדלת התמונה: ${model.name}`}
         className="group relative block w-full cursor-zoom-in rounded-xl"
       >
-        <ModelImage model={model} className={className} sizes={sizes} preload={preload} />
+        <ModelImage model={model} className={className} sizes={sizes} preload={preload} tint={tint} />
         <span
           aria-hidden="true"
           className="absolute bottom-1.5 left-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-brown/70 text-white transition group-hover:bg-brown"
@@ -81,7 +82,7 @@ export default function ZoomableModelImage({ model, className, sizes, preload }:
           </svg>
         </span>
       </button>
-      {open && <Lightbox model={model} onClose={() => setOpen(false)} />}
+      {open && <Lightbox model={model} tint={tint} onClose={() => setOpen(false)} />}
     </>
   );
 }

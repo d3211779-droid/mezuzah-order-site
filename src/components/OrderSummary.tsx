@@ -19,24 +19,19 @@ function ColorValue({ id }: { id: string | null }) {
   );
 }
 
-function fillValue(values: OrderValues): ReactNode {
-  const fill = getFill(values.fillId);
-  if (fill.id === "none") return fill.name;
-  return (
-    <span className="inline-flex flex-wrap items-center justify-end gap-x-2">
-      {fill.name}: <ColorValue id={values.fillColorId} />
-    </span>
-  );
-}
-
 export default function OrderSummary({ values }: { values: OrderValues }) {
   const personalText = values.personalText.trim();
   const note = values.note.trim();
 
+  const fill = getFill(values.fillId);
+
   const rows: [string, ReactNode][] = [
     ["דגם", getModel(values.modelId)?.name ?? EMPTY],
-    ["צבע", <ColorValue key="color" id={values.colorId} />],
-    ["מילוי", fillValue(values)],
+    ["צבע גוף", <ColorValue key="body" id={values.colorId} />],
+    ["סוג מילוי", fill.name],
+    ...(fill.id === "single"
+      ? ([["צבע מילוי", <ColorValue key="fill" id={values.fillColorId} />]] as [string, ReactNode][])
+      : []),
     ...(personalText ? ([["טקסט אישי", personalText]] as [string, ReactNode][]) : []),
     ["שם מלא", values.fullName.trim() || EMPTY],
     ["טלפון", values.phone.trim() || EMPTY],
