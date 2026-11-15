@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import AdminNav from "@/components/admin/AdminNav";
@@ -16,6 +17,7 @@ export default function AdminPanelLayout({ children }: { children: ReactNode }) 
 
 /** Real authorization: signed in AND listed in the admins table. Everything else is turned away. */
 async function AdminGate({ children }: { children: ReactNode }) {
+  await connection(); // always rendered per request, never part of the static shell
   const ctx = await getAdminContext();
   if (ctx.status === "unconfigured" || ctx.status === "signed-out") redirect("/admin/login");
 
