@@ -1,0 +1,27 @@
+export default function GoodToKnow() {
+  return (
+    <div role="note" className="flex gap-4 rounded-2xl border border-gold-soft bg-[#fbf6ed] p-4 md:p-5">
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        className="mt-0.5 h-7 w-7 shrink-0 text-gold-deep"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M3 11.5 12 4l9 7.5" />
+        <path d="M5.5 10v9.5h13V10" />
+        <path d="M10 19.5v-5h4v5" />
+      </svg>
+      <div>
+        <h2 className="font-bold">כדאי לדעת</h2>
+        <p className="mt-1 text-sm leading-6 text-brown-soft">
+          המזוזות מיועדות בעיקר להתקנה בתוך הבית או בכניסה מקורה ומוגנת. בכניסה חיצונית החשופה ישירות לשמש
+          ולגשם מומלץ להתייעץ איתנו לפני ההזמנה.
+        </p>
+      </div>
+    </div>
+  );
+}

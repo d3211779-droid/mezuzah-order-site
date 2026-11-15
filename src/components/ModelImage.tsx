@@ -1,23 +1,50 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import type { MezuzahModel } from "@/data/catalog";
-import { ModelIcon } from "./MezuzahPreview";
+
+/** Share of the box height the mezuzah itself should fill, the same for every model. */
+const TARGET_HEIGHT = 0.8;
+
+/** Softens the hard edge of the square source photo so it blends into the box. */
+const FEATHER =
+  "linear-gradient(to right, transparent, #000 5%, #000 95%, transparent), linear-gradient(to bottom, transparent, #000 5%, #000 95%, transparent)";
+
+/** CSS-only normalisation: same size, same centre, straightened if the photo leans. */
+function fitStyle({ cx, cy, h, tilt = 0 }: MezuzahModel["fit"]): CSSProperties {
+  const scale = (TARGET_HEIGHT * 1024) / h;
+  const x = ((512 - cx) / 1024) * scale * 100;
+  const y = ((512 - cy) / 1024) * scale * 100;
+  return {
+    transform: `translate(${x}%, ${y}%) scale(${scale}) rotate(${tilt}deg)`,
+    maskImage: FEATHER,
+    maskComposite: "intersect",
+    WebkitMaskImage: FEATHER,
+    WebkitMaskComposite: "source-in",
+  };
+}
+
+type Props = {
+  model: MezuzahModel;
+  /** Tailwind classes for the box (size / aspect ratio). */
+  className?: string;
+  sizes: string;
+  preload?: boolean;
+};
 
 /**
- * Product photo in a fixed-ratio, light container. object-contain keeps the whole
- * mezuzah visible (no cropping); if the file fails to load a clean fallback is shown.
+ * Model photo inside a fixed, clean box. object-contain keeps the whole mezuzah
+ * visible (never cropped); if the file fails to load a neutral fallback is shown.
  */
-export default function ModelImage({ model, preload = false }: { model: MezuzahModel; preload?: boolean }) {
+export default function ModelImage({ model, className = "aspect-square w-full", sizes, preload = false }: Props) {
   const [failed, setFailed] = useState(false);
 
   return (
-    <span className="relative block aspect-square w-full overflow-hidden rounded-xl border border-line bg-white">
+    <span className={`relative block overflow-hidden rounded-xl bg-white ${className}`}>
       {failed ? (
-        <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-brown-soft">
-          <ModelIcon model={model.glyph} className="h-24 w-20" />
-          <span>התמונה תתעדכן בקרוב</span>
+        <span className="absolute inset-0 flex items-center justify-center p-3 text-center text-sm text-brown-soft">
+          התמונה תתעדכן בקרוב
         </span>
       ) : (
         <Image
@@ -25,8 +52,9 @@ export default function ModelImage({ model, preload = false }: { model: MezuzahM
           alt={model.imageAlt}
           fill
           preload={preload}
-          sizes="(min-width: 1280px) 220px, (min-width: 640px) 45vw, 92vw"
-          className="object-contain p-3"
+          sizes={sizes}
+          className="object-contain"
+          style={fitStyle(model.fit)}
           onError={() => setFailed(true)}
         />
       )}

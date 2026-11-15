@@ -1,13 +1,25 @@
-/** Which drawing the live preview uses for a model. */
-export type GlyphId = "flame" | "shin";
+/**
+ * Where the mezuzah sits inside its 1024x1024 source photo, measured once per image.
+ * The gallery uses it to give every model the same size, centre and (when needed) a
+ * small straightening rotation, with CSS only - the image files are never edited.
+ */
+export type ModelFit = {
+  /** Centre of the mezuzah, in source pixels. */
+  cx: number;
+  cy: number;
+  /** Visible height of the mezuzah, in source pixels. */
+  h: number;
+  /** Straightening rotation in degrees (negative = counter-clockwise). */
+  tilt?: number;
+};
 
 export type MezuzahModel = {
   id: string;
   name: string;
-  glyph: GlyphId;
   /** Path inside /public, always starting with /images/mezuzahs/ (lowercase - case-sensitive on Vercel). */
   image: string;
   imageAlt: string;
+  fit: ModelFit;
 };
 
 export type ProductColor = {
@@ -29,65 +41,65 @@ export const models: MezuzahModel[] = [
   {
     id: "flame-large",
     name: "אש גדול",
-    glyph: "flame",
     image: "/images/mezuzahs/flame-large.jpg",
     imageAlt: "מזוזה בדגם אש גדול",
+    fit: { cx: 497, cy: 529, h: 833 },
   },
   {
     id: "flame-small",
     name: "אש קטן",
-    glyph: "flame",
     image: "/images/mezuzahs/flame-small.jpg",
     imageAlt: "מזוזה בדגם אש קטן",
+    fit: { cx: 497, cy: 517, h: 870, tilt: -5.4 },
   },
   {
     id: "flame-side-large",
     name: "אש שלי על הצד גדול",
-    glyph: "flame",
     image: "/images/mezuzahs/flame-side-large.jpg",
     imageAlt: "מזוזה בדגם אש שלי על הצד גדול",
+    fit: { cx: 492, cy: 524, h: 931 },
   },
   {
     id: "flame-side-small",
     name: "אש שלי על הצד קטן",
-    glyph: "flame",
     image: "/images/mezuzahs/flame-side-small.jpg",
     imageAlt: "מזוזה בדגם אש שלי על הצד קטן",
+    fit: { cx: 503, cy: 520, h: 915, tilt: -1.8 },
   },
   {
     id: "shin-large",
     name: "ש גדול",
-    glyph: "shin",
     image: "/images/mezuzahs/shin-large.jpg",
     imageAlt: "מזוזה בדגם ש גדול",
+    fit: { cx: 498, cy: 526, h: 898 },
   },
   {
     id: "shin-small",
     name: "ש קטן",
-    glyph: "shin",
     image: "/images/mezuzahs/shin-small.jpg",
     imageAlt: "מזוזה בדגם ש קטן",
+    fit: { cx: 482, cy: 524, h: 902 },
   },
   {
     id: "shin-smallest",
     name: "ש הכי קטן",
-    glyph: "shin",
     image: "/images/mezuzahs/shin-smallest.jpg",
     imageAlt: "מזוזה בדגם ש הכי קטן",
+    fit: { cx: 497, cy: 525, h: 851 },
   },
   {
     id: "shin-regular-large",
     name: "ש רגילה גדול",
-    glyph: "shin",
     image: "/images/mezuzahs/shin-regular-large.jpg",
     imageAlt: "מזוזה בדגם ש רגילה גדול",
+    fit: { cx: 492, cy: 527, h: 909 },
   },
   {
     id: "shin-regular-small",
     name: "ש רגילה קטן",
-    glyph: "shin",
     image: "/images/mezuzahs/shin-regular-small.jpg",
     imageAlt: "מזוזה בדגם ש רגילה קטן",
+    fit: { cx: 503, cy: 523, h: 892 },
   },
 ];
 

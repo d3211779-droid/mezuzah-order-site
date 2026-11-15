@@ -1,5 +1,5 @@
 import type { OrderValues } from "@/lib/validation";
-import OrderPreview from "./OrderPreview";
+import SelectedModelPreview from "./SelectedModelPreview";
 import OrderSummary from "./OrderSummary";
 
 type Props = {
@@ -36,7 +36,7 @@ export default function ConfirmationScreen({ order, orderNumber, onReset }: Prop
         </p>
 
         <div className="my-6">
-          <OrderPreview values={order} />
+          <SelectedModelPreview modelId={order.modelId} />
         </div>
 
         <div className="rounded-2xl bg-brown p-5 text-right text-white">

@@ -15,10 +15,11 @@ import {
 import ColorPicker from "./ColorPicker";
 import ConfirmationScreen from "./ConfirmationScreen";
 import FillPicker from "./FillPicker";
-import OrderPreview from "./OrderPreview";
+import GoodToKnow from "./GoodToKnow";
 import ModelPicker from "./ModelPicker";
 import OrderSummary from "./OrderSummary";
 import SectionCard from "./SectionCard";
+import SelectedModelPreview from "./SelectedModelPreview";
 
 const INITIAL: OrderValues = {
   modelId: null,
@@ -215,12 +216,13 @@ export default function OrderBuilder() {
               </div>
             </div>
           </SectionCard>
+
+          <GoodToKnow />
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
           <div className="rounded-3xl border border-line bg-white p-5 shadow-sm">
-            <OrderPreview values={values} />
-            <p className="mt-2 text-center text-xs text-brown-soft">תצוגה להמחשה בלבד</p>
+            <SelectedModelPreview modelId={values.modelId} />
           </div>
 
           <div className="rounded-3xl bg-brown p-5 text-white md:p-6">
