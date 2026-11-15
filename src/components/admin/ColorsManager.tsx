@@ -1,0 +1,147 @@
+"use client";
+
+import { useState } from "react";
+import { createColor, moveRow, updateColor } from "@/app/admin/catalog-actions";
+import { HEX_RE, type AdminColor } from "@/lib/admin/catalog";
+import { ErrorLine, MoveButtons, Toggle, inputClass, primaryButton, useRun } from "./catalog-ui";
+
+/** Colour picker + hex text field that stay in sync. Reports every valid change. */
+function HexField({ id, value, onChange }: { id: string; value: string; onChange: (hex: string) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="color"
+        aria-label="בחירת גוון"
+        value={HEX_RE.test(value) ? value : "#cccccc"}
+        onChange={(e) => onChange(e.target.value.toUpperCase())}
+        className="h-12 w-14 shrink-0 cursor-pointer rounded-xl border border-[#dccfbd] bg-white p-1"
+      />
+      <input
+        id={id}
+        dir="ltr"
+        aria-label="קוד גוון (hex)"
+        value={value}
+        maxLength={7}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${inputClass} w-32 text-right`}
+      />
+    </div>
+  );
+}
+
+function ColorRow({ color, isFirst, isLast }: { color: AdminColor; isFirst: boolean; isLast: boolean }) {
+  const [name, setName] = useState(color.name);
+  const [hex, setHex] = useState(color.hex);
+  const { pending, error, run } = useRun();
+  const dirty = name.trim() !== color.name || hex.toUpperCase() !== color.hex.toUpperCase();
+
+  return (
+    <li className={`rounded-2xl border border-line bg-white p-4 shadow-sm ${color.available ? "" : "opacity-80"}`}>
+      <div className="flex flex-wrap items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="h-12 w-12 shrink-0 rounded-full border border-black/20"
+          style={{ backgroundColor: HEX_RE.test(hex) ? hex : "#cccccc" }}
+        />
+        <label className="sr-only" htmlFor={`cname-${color.id}`}>
+          שם הצבע
+        </label>
+        <input
+          id={`cname-${color.id}`}
+          value={name}
+          maxLength={40}
+          onChange={(e) => setName(e.target.value)}
+          className={`${inputClass} min-w-0 flex-1 basis-40`}
+        />
+        <HexField id={`chex-${color.id}`} value={hex} onChange={setHex} />
+        {dirty && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => run(() => updateColor(color.id, { name, hex }))}
+            className={primaryButton}
+          >
+            שמירה
+          </button>
+        )}
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <Toggle
+          checked={color.available}
+          disabled={pending}
+          onLabel="זמין"
+          offLabel="לא זמין"
+          onChange={(available) => run(() => updateColor(color.id, { available }))}
+        />
+        <MoveButtons
+          isFirst={isFirst}
+          isLast={isLast}
+          disabled={pending}
+          onMove={(direction) => run(() => moveRow("colors", color.id, direction))}
+        />
+        {pending && <span className="text-sm text-brown-soft">שומר…</span>}
+      </div>
+      {error && <div className="mt-2"><ErrorLine>{error}</ErrorLine></div>}
+    </li>
+  );
+}
+
+function AddColorForm() {
+  const [name, setName] = useState("");
+  const [hex, setHex] = useState("#CCCCCC");
+  const { pending, error, setError, run } = useRun();
+
+  function submit() {
+    if (!name.trim()) return setError("יש להזין שם לצבע.");
+    run(
+      () => createColor(name, hex),
+      () => {
+        setName("");
+        setHex("#CCCCCC");
+      },
+    );
+  }
+
+  return (
+    <section aria-labelledby="add-color" className="rounded-2xl border border-gold-soft bg-[#fbf6ed] p-4">
+      <h2 id="add-color" className="mb-3 font-bold">
+        הוספת צבע
+      </h2>
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          aria-label="שם הצבע החדש"
+          placeholder="שם הצבע"
+          value={name}
+          maxLength={40}
+          onChange={(e) => setName(e.target.value)}
+          className={`${inputClass} min-w-0 flex-1 basis-40`}
+        />
+        <HexField id="new-color-hex" value={hex} onChange={setHex} />
+        <button type="button" disabled={pending} onClick={submit} className={primaryButton}>
+          {pending ? "שומר…" : "הוספה"}
+        </button>
+      </div>
+      {error && <div className="mt-2"><ErrorLine>{error}</ErrorLine></div>}
+    </section>
+  );
+}
+
+export default function ColorsManager({ colors }: { colors: AdminColor[] }) {
+  return (
+    <div className="space-y-5">
+      <AddColorForm />
+      <p className="text-sm text-brown-soft">
+        צבע שסומן &quot;לא זמין&quot; לא מוצג ללקוחות (לא כצבע גוף ולא כצבע מילוי) אך נשמר בהזמנות קיימות.
+      </p>
+      {colors.length === 0 ? (
+        <p className="rounded-2xl border border-line bg-white p-8 text-center text-brown-soft">עדיין אין צבעים.</p>
+      ) : (
+        <ul className="space-y-3">
+          {colors.map((c, i) => (
+            <ColorRow key={c.id} color={c} isFirst={i === 0} isLast={i === colors.length - 1} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

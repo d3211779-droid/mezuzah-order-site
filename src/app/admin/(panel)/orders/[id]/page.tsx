@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import NoteForm from "@/components/admin/NoteForm";
@@ -28,6 +29,7 @@ function ColorValue({ hex, name }: { hex: string; name: string | null }) {
 }
 
 export default async function AdminOrderPage({ params }: { params: Promise<{ id: string }> }) {
+  await connection();
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
 

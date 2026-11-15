@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import StatusSelect from "@/components/admin/StatusSelect";
 import Swatch from "@/components/admin/Swatch";
 import {
@@ -15,6 +16,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
 
 export default async function AdminOrdersPage({ searchParams }: { searchParams: SearchParams }) {
+  await connection();
   const sp = await searchParams;
   // Characters that have a meaning inside a PostgREST filter are replaced before searching.
   const q = first(sp.q).replace(/[,()%*\\"]/g, " ").trim().slice(0, 60);
