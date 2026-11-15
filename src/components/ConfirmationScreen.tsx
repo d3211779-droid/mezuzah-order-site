@@ -44,10 +44,6 @@ export default function ConfirmationScreen({ order, orderNumber, onReset }: Prop
           <OrderSummary values={order} />
         </div>
 
-        <p className="mt-5 rounded-xl bg-cream p-3 text-sm text-brown-soft">
-          זהו מסך אישור זמני. בשלב זה פרטי ההזמנה אינם נשמרים ואינם נשלחים לאף גורם.
-        </p>
-
         <button
           type="button"
           onClick={onReset}

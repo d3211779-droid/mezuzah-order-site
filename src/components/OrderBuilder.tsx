@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useCatalog } from "@/lib/catalog/context";
-import { makeTempOrderNumber } from "@/lib/orderNumber";
+import { submitOrder } from "@/lib/orders/submit";
 import {
   FIELD_DOM_ID,
   FIELD_ORDER,
@@ -46,6 +46,8 @@ export default function OrderBuilder() {
   const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>({});
   const [attempted, setAttempted] = useState(false);
   const [submitted, setSubmitted] = useState<{ order: OrderValues; number: string } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   const errors = validateOrder(values, catalog);
   const shown = (key: FieldKey) =>
@@ -57,9 +59,11 @@ export default function OrderBuilder() {
     setValues((v) => ({ ...v, [key]: value }));
   const blur = (key: FieldKey) => setTouched((t) => ({ ...t, [key]: true }));
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (saving) return;
     setAttempted(true);
+    setSaveFailed(false);
 
     const firstInvalid = FIELD_ORDER.find((key) => errors[key]);
     if (firstInvalid) {
@@ -69,8 +73,15 @@ export default function OrderBuilder() {
       return;
     }
 
-    // Temporary number until orders are really saved.
-    setSubmitted({ order: { ...values }, number: makeTempOrderNumber() });
+    // The confirmation is shown only after the order was really saved.
+    setSaving(true);
+    const result = await submitOrder(values);
+    setSaving(false);
+    if (!result.ok) {
+      setSaveFailed(true);
+      return;
+    }
+    setSubmitted({ order: { ...values }, number: result.orderNumber });
     window.scrollTo({ top: 0 });
     requestAnimationFrame(() => document.getElementById("confirmation")?.focus());
   }
@@ -79,6 +90,7 @@ export default function OrderBuilder() {
     setValues(initialValues(defaultFillId));
     setTouched({});
     setAttempted(false);
+    setSaveFailed(false);
     setSubmitted(null);
     window.scrollTo({ top: 0 });
   }
@@ -239,11 +251,18 @@ export default function OrderBuilder() {
               </p>
             )}
 
+            {saveFailed && (
+              <p role="alert" className="mt-4 rounded-xl bg-white/10 p-3 text-sm font-medium">
+                לא הצלחנו לשמור את ההזמנה. נסו שוב.
+              </p>
+            )}
+
             <button
               type="submit"
-              className="mt-5 min-h-14 w-full rounded-2xl bg-gold px-6 text-lg font-bold text-white transition hover:bg-[#9c7a3e] active:scale-[0.99]"
+              disabled={saving}
+              className="mt-5 min-h-14 w-full rounded-2xl bg-gold px-6 text-lg font-bold text-white transition hover:bg-[#9c7a3e] active:scale-[0.99] disabled:cursor-wait disabled:opacity-70"
             >
-              שלח הזמנה
+              {saving ? "שולח…" : "שלח הזמנה"}
             </button>
           </div>
         </aside>
