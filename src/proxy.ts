@@ -15,7 +15,7 @@ export async function proxy(request: NextRequest) {
   if (!env) return isLogin ? NextResponse.next() : toLogin();
 
   let response = NextResponse.next({ request });
-  const supabase = createServerClient(env.url, env.anonKey, {
+  const supabase = createServerClient(env.url, env.publishableKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (list) => {

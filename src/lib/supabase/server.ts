@@ -9,9 +9,9 @@ import { requireSupabaseEnv } from "./env";
  * behind a <Suspense> boundary or inside a server action.
  */
 export async function createSessionSupabase(): Promise<SupabaseClient> {
-  const { url, anonKey } = requireSupabaseEnv();
+  const { url, publishableKey } = requireSupabaseEnv();
   const cookieStore = await cookies();
-  return createServerClient(url, anonKey, {
+  return createServerClient(url, publishableKey, {
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (list) => {
@@ -26,8 +26,8 @@ export async function createSessionSupabase(): Promise<SupabaseClient> {
   });
 }
 
-/** Cookie-less anon client for public catalog reads (RLS only exposes active/available rows). */
+/** Cookie-less public client for public catalog reads (RLS only exposes active/available rows). */
 export function createPublicSupabase(): SupabaseClient {
-  const { url, anonKey } = requireSupabaseEnv();
-  return createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { url, publishableKey } = requireSupabaseEnv();
+  return createClient(url, publishableKey, { auth: { persistSession: false, autoRefreshToken: false } });
 }
