@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { CatalogProvider } from "@/lib/catalog/context";
 import { loadCatalog } from "@/lib/catalog/load";
 import OrderBuilder from "./OrderBuilder";
@@ -5,6 +6,9 @@ import RetryButton from "./RetryButton";
 
 /** Loads the catalog from Supabase on every request and renders the order screen with it. */
 export default async function CatalogSection() {
+  // Always render at request time. Without this, a build where Supabase was unreachable or its env vars
+  // were missing would bake the "catalog unavailable" message into the static page for every visitor.
+  await connection();
   const result = await loadCatalog();
   if (!result.ok) return <CatalogUnavailable />;
 

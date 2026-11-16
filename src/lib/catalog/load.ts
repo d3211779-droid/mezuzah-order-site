@@ -34,13 +34,28 @@ export function mapModel(row: ModelRow): Model {
 
 export type CatalogResult = { ok: true; catalog: Catalog } | { ok: false };
 
+/** Logs a PostgREST error with everything useful for diagnosis. Never prints keys. */
+function logQueryError(table: string, error: { code?: string; message?: string; details?: string | null; hint?: string | null }) {
+  console.error(
+    `[loadCatalog] ${table} query failed | code=${error.code ?? "-"} | message=${error.message ?? "-"} | details=${error.details ?? "-"} | hint=${error.hint ?? "-"}`,
+  );
+}
+
 /**
  * Reads the public catalog. Row Level Security only returns active models and
  * available colours / fills, so no extra filtering is needed (it is repeated here
  * anyway as a second line of defence). Never throws: any failure becomes { ok: false }.
  */
 export async function loadCatalog(): Promise<CatalogResult> {
-  if (!getSupabaseEnv()) return { ok: false };
+  if (!getSupabaseEnv()) {
+    // Names only - never values.
+    const missing = [
+      process.env.NEXT_PUBLIC_SUPABASE_URL ? null : "NEXT_PUBLIC_SUPABASE_URL",
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ? null : "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    ].filter(Boolean);
+    console.error(`[loadCatalog] Supabase env vars are missing at runtime: ${missing.join(", ")}`);
+    return { ok: false };
+  }
   try {
     const supabase = createPublicSupabase();
     const [models, colors, fills] = await Promise.all([
@@ -53,6 +68,9 @@ export async function loadCatalog(): Promise<CatalogResult> {
       supabase.from("colors").select("id, name, hex").eq("available", true).order("sort_order").order("created_at"),
       supabase.from("fills").select("id, name, description").eq("available", true).order("sort_order"),
     ]);
+    if (models.error) logQueryError("models", models.error);
+    if (colors.error) logQueryError("colors", colors.error);
+    if (fills.error) logQueryError("fills", fills.error);
     if (models.error || colors.error || fills.error) return { ok: false };
 
     const catalog: Catalog = {
@@ -63,9 +81,15 @@ export async function loadCatalog(): Promise<CatalogResult> {
         .map((f): Fill => ({ id: f.id, name: f.name, description: f.description })),
     };
     // Without at least one model, colour and fill nobody can order: treat as unavailable.
-    if (!catalog.models.length || !catalog.colors.length || !catalog.fills.length) return { ok: false };
+    if (!catalog.models.length || !catalog.colors.length || !catalog.fills.length) {
+      console.error(
+        `[loadCatalog] catalog is empty for the public role (models=${catalog.models.length}, colors=${catalog.colors.length}, fills=${catalog.fills.length}; rows returned: models=${models.data.length}, colors=${colors.data.length}, fills=${fills.data.length})`,
+      );
+      return { ok: false };
+    }
     return { ok: true, catalog };
-  } catch {
+  } catch (err) {
+    console.error("[loadCatalog] unexpected failure while loading the catalog:", err instanceof Error ? err.message : err);
     return { ok: false };
   }
 }
