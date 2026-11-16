@@ -1,4 +1,10 @@
+import { useCatalog } from "@/lib/catalog/context";
+
 export default function GoodToKnow() {
+  const { usageNote } = useCatalog().settings;
+  // Empty text in the admin settings hides the whole card.
+  if (!usageNote) return null;
+
   return (
     <div role="note" className="flex gap-4 rounded-2xl border border-gold-soft bg-[#fbf6ed] p-4 md:p-5">
       <svg
@@ -17,10 +23,7 @@ export default function GoodToKnow() {
       </svg>
       <div>
         <h2 className="font-bold">כדאי לדעת</h2>
-        <p className="mt-1 text-sm leading-6 text-brown-soft">
-          המזוזות מיועדות בעיקר להתקנה בתוך הבית או בכניסה מקורה ומוגנת. בכניסה חיצונית החשופה ישירות לשמש
-          ולגשם מומלץ להתייעץ איתנו לפני ההזמנה.
-        </p>
+        <p className="mt-1 whitespace-pre-line text-sm leading-6 text-brown-soft">{usageNote}</p>
       </div>
     </div>
   );

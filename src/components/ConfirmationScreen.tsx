@@ -1,3 +1,4 @@
+import { useCatalog } from "@/lib/catalog/context";
 import type { OrderValues } from "@/lib/validation";
 import SelectedModelPreview from "./SelectedModelPreview";
 import OrderSummary from "./OrderSummary";
@@ -10,6 +11,7 @@ type Props = {
 
 export default function ConfirmationScreen({ order, orderNumber, onReset }: Props) {
   const firstName = order.fullName.trim().split(/\s+/)[0];
+  const { confirmationMessage } = useCatalog().settings;
 
   return (
     <section
@@ -31,9 +33,7 @@ export default function ConfirmationScreen({ order, orderNumber, onReset }: Prop
         <p className="mt-3 text-lg">
           מספר הזמנה: <strong dir="ltr">{orderNumber}</strong>
         </p>
-        <p className="mt-2 text-brown-soft">
-          ניצור איתך קשר בטלפון לסגירת התשלום והאספקה.
-        </p>
+        <p className="mt-2 whitespace-pre-line text-brown-soft">{confirmationMessage}</p>
 
         <div className="my-6">
           <SelectedModelPreview values={order} />

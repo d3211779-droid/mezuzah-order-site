@@ -1,5 +1,6 @@
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createPublicSupabase } from "@/lib/supabase/server";
+import { DEFAULT_SETTINGS, SETTING_COLUMNS, parseSettings, type SiteSettings } from "@/lib/settings";
 import type { Catalog, Color, Fill, Model, ModelFit } from "./types";
 
 type ModelRow = {
@@ -32,6 +33,26 @@ export function mapModel(row: ModelRow): Model {
   };
 }
 
+/**
+ * Reads the single `site_settings` row. It can never break the catalog: if the table does not
+ * exist yet, the row is missing or the request fails, the built-in defaults are used.
+ */
+async function loadSettings(supabase: ReturnType<typeof createPublicSupabase>): Promise<SiteSettings> {
+  try {
+    const { data, error } = await supabase.from("site_settings").select(SETTING_COLUMNS).eq("id", true).maybeSingle();
+    if (error) {
+      console.warn(
+        `[loadCatalog] site_settings unavailable, using defaults | code=${error.code ?? "-"} | message=${error.message ?? "-"}`,
+      );
+      return DEFAULT_SETTINGS;
+    }
+    return parseSettings(data);
+  } catch (err) {
+    console.warn("[loadCatalog] site_settings failed, using defaults:", err instanceof Error ? err.message : err);
+    return DEFAULT_SETTINGS;
+  }
+}
+
 export type CatalogResult = { ok: true; catalog: Catalog } | { ok: false };
 
 /** Logs a PostgREST error with everything useful for diagnosis. Never prints keys. */
@@ -58,7 +79,7 @@ export async function loadCatalog(): Promise<CatalogResult> {
   }
   try {
     const supabase = createPublicSupabase();
-    const [models, colors, fills] = await Promise.all([
+    const [models, colors, fills, settings] = await Promise.all([
       supabase
         .from("models")
         .select("id, name, image_url, fit, mask_body_url, mask_fill_url")
@@ -67,6 +88,7 @@ export async function loadCatalog(): Promise<CatalogResult> {
         .order("created_at"),
       supabase.from("colors").select("id, name, hex").eq("available", true).order("sort_order").order("created_at"),
       supabase.from("fills").select("id, name, description").eq("available", true).order("sort_order"),
+      loadSettings(supabase),
     ]);
     if (models.error) logQueryError("models", models.error);
     if (colors.error) logQueryError("colors", colors.error);
@@ -79,6 +101,7 @@ export async function loadCatalog(): Promise<CatalogResult> {
       fills: (fills.data as FillRow[])
         .filter((f): f is FillRow & { id: Fill["id"] } => f.id === "none" || f.id === "single")
         .map((f): Fill => ({ id: f.id, name: f.name, description: f.description })),
+      settings,
     };
     // Without at least one model, colour and fill nobody can order: treat as unavailable.
     if (!catalog.models.length || !catalog.colors.length || !catalog.fills.length) {

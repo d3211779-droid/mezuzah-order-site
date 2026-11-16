@@ -7,8 +7,6 @@ import {
   FIELD_DOM_ID,
   FIELD_ORDER,
   MAX_NOTE,
-  MAX_PERSONAL_TEXT,
-  PERSONAL_TEXT_WIDTH_CM,
   validateOrder,
   type FieldKey,
   type OrderValues,
@@ -40,6 +38,7 @@ const inputClass = (invalid: boolean) =>
 
 export default function OrderBuilder() {
   const catalog = useCatalog();
+  const { personalTextMax, personalTextSizeNote } = catalog.settings;
   // "No fill" is the default; if it is switched off in the admin panel, the first available fill is used.
   const defaultFillId = (catalog.fills.find((f) => f.id === "none") ?? catalog.fills[0]).id;
   const [values, setValues] = useState<OrderValues>(() => initialValues(defaultFillId));
@@ -158,14 +157,12 @@ export default function OrderBuilder() {
               </span>
               <span
                 dir="ltr"
-                className={textLength > MAX_PERSONAL_TEXT ? "font-medium text-error" : "text-brown-soft"}
+                className={textLength > personalTextMax ? "font-medium text-error" : "text-brown-soft"}
               >
-                {textLength}/{MAX_PERSONAL_TEXT}
+                {textLength}/{personalTextMax}
               </span>
             </div>
-            <p className="mt-3 text-sm text-brown-soft">
-              הכיתוב מותאם לשטח הדפסה ברוחב כ־{PERSONAL_TEXT_WIDTH_CM} ס״מ
-            </p>
+            <p className="mt-3 text-sm text-brown-soft">{personalTextSizeNote}</p>
           </SectionCard>
 
           <SectionCard step={5} title="פרטים ליצירת קשר">

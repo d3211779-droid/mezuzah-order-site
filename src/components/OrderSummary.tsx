@@ -21,7 +21,7 @@ function ColorValue({ id }: { id: string | null }) {
 }
 
 export default function OrderSummary({ values }: { values: OrderValues }) {
-  const { getModel, getFill } = useCatalog();
+  const { getModel, getFill, settings } = useCatalog();
   const personalText = values.personalText.trim();
   const note = values.note.trim();
 
@@ -56,13 +56,15 @@ export default function OrderSummary({ values }: { values: OrderValues }) {
           <dd className="mt-1 break-words whitespace-pre-wrap">{note}</dd>
         </div>
       )}
-      <div className="rounded-xl bg-white/10 px-3 py-2">
-        <dt className="sr-only">מבנה המזוזה</dt>
-        <dd>
-          <span className="font-medium">המזוזה סגורה מאחור</span>
-          <span className="block text-xs text-[#d9c39a]">למראה נקי ולשמירה על הקלף</span>
-        </dd>
-      </div>
+      {settings.closedBackTitle && (
+        <div className="rounded-xl bg-white/10 px-3 py-2">
+          <dt className="sr-only">מבנה המזוזה</dt>
+          <dd>
+            <span className="font-medium">{settings.closedBackTitle}</span>
+            {settings.closedBackText && <span className="block text-xs text-[#d9c39a]">{settings.closedBackText}</span>}
+          </dd>
+        </div>
+      )}
     </dl>
   );
 }

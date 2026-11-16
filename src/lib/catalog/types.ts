@@ -1,3 +1,5 @@
+import type { SiteSettings } from "@/lib/settings";
+
 /**
  * Where the mezuzah sits inside its 1024x1024 source photo, measured once per image.
  * The gallery uses it to give every model the same size, centre and (when needed) a
@@ -43,4 +45,6 @@ export type Catalog = {
   models: Model[];
   colors: Color[];
   fills: Fill[];
+  /** Texts and limits from the admin panel (never missing: falls back to the defaults). */
+  settings: SiteSettings;
 };

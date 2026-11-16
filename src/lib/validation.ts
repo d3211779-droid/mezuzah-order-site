@@ -1,9 +1,6 @@
 import type { Catalog } from "@/lib/catalog/types";
 
-/** Max characters for the personal text - the only place to change it. */
-export const MAX_PERSONAL_TEXT = 8;
-/** Printable text width on the mezuzah, shown in the helper text. */
-export const PERSONAL_TEXT_WIDTH_CM = 2.5;
+// The personal-text limit and its helper text come from the admin settings (catalog.settings).
 export const MAX_NOTE = 300;
 
 export type OrderValues = {
@@ -57,8 +54,9 @@ export function validateOrder(values: OrderValues, catalog: Catalog): OrderError
 
   const text = values.personalText.trim();
   if (text) {
-    if (values.personalText.length > MAX_PERSONAL_TEXT) {
-      errors.personalText = `הטקסט ארוך מדי – עד ${MAX_PERSONAL_TEXT} תווים`;
+    const max = catalog.settings.personalTextMax;
+    if (values.personalText.length > max) {
+      errors.personalText = `הטקסט ארוך מדי – עד ${max} תווים`;
     } else if (!HEBREW_ONLY.test(text)) {
       errors.personalText = "הטקסט האישי יכול להכיל אותיות בעברית בלבד";
     }
