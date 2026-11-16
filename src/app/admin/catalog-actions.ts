@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminContext } from "@/lib/admin/session";
-import { HEX_RE, cleanName, type ActionResult } from "@/lib/admin/catalog";
+import { HEX_RE, cleanName, parseSortOrder, type ActionResult } from "@/lib/admin/catalog";
 import { UUID_RE } from "@/lib/admin/orders";
 
 const FAIL: ActionResult = { ok: false, error: "השמירה נכשלה. נסו שוב." };
@@ -28,15 +28,21 @@ async function nextSortOrder(supabase: NonNullable<Awaited<ReturnType<typeof adm
 
 // ---------------------------------------------------------------- models
 
-export async function createModel(name: string, imageUrl: string): Promise<ActionResult> {
+export async function createModel(
+  name: string,
+  imageUrl: string,
+  options: { active?: boolean; sortOrder?: number | null } = {},
+): Promise<ActionResult> {
   const clean = cleanName(name);
   if (!clean) return { ok: false, error: "יש להזין שם לדגם." };
   if (typeof imageUrl !== "string" || !/^https?:\/\//.test(imageUrl)) return { ok: false, error: "יש להעלות תמונה." };
 
   const supabase = await adminClient();
   if (!supabase) return FAIL;
-  const sort_order = await nextSortOrder(supabase, "models");
-  const { error } = await supabase.from("models").insert({ name: clean, image_url: imageUrl, sort_order, active: true });
+  const sort_order = parseSortOrder(options.sortOrder) ?? (await nextSortOrder(supabase, "models"));
+  const { error } = await supabase
+    .from("models")
+    .insert({ name: clean, image_url: imageUrl, sort_order, active: options.active !== false });
   return error ? FAIL : done();
 }
 
@@ -68,15 +74,21 @@ export async function updateModel(
 
 // ---------------------------------------------------------------- colors
 
-export async function createColor(name: string, hex: string): Promise<ActionResult> {
+export async function createColor(
+  name: string,
+  hex: string,
+  options: { available?: boolean; sortOrder?: number | null } = {},
+): Promise<ActionResult> {
   const clean = cleanName(name, 40);
   if (!clean) return { ok: false, error: "יש להזין שם לצבע." };
   if (!HEX_RE.test(hex)) return { ok: false, error: "קוד הצבע חייב להיות מהצורה #RRGGBB." };
 
   const supabase = await adminClient();
   if (!supabase) return FAIL;
-  const sort_order = await nextSortOrder(supabase, "colors");
-  const { error } = await supabase.from("colors").insert({ name: clean, hex: hex.toUpperCase(), sort_order, available: true });
+  const sort_order = parseSortOrder(options.sortOrder) ?? (await nextSortOrder(supabase, "colors"));
+  const { error } = await supabase
+    .from("colors")
+    .insert({ name: clean, hex: hex.toUpperCase(), sort_order, available: options.available !== false });
   return error ? FAIL : done();
 }
 

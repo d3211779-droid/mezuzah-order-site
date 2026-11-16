@@ -2,10 +2,12 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import CopyPhoneButton from "@/components/admin/CopyPhoneButton";
 import NoteForm from "@/components/admin/NoteForm";
+import StatusBadge from "@/components/admin/StatusBadge";
 import StatusSelect from "@/components/admin/StatusSelect";
 import Swatch from "@/components/admin/Swatch";
-import { ORDER_COLUMNS, UUID_RE, fillLabel, formatOrderDate, type OrderRow } from "@/lib/admin/orders";
+import { ORDER_COLUMNS, UUID_RE, fillLabel, formatOrderDate, statusInfo, whatsappUrl, type OrderRow } from "@/lib/admin/orders";
 import { createSessionSupabase } from "@/lib/supabase/server";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -28,6 +30,8 @@ function ColorValue({ hex, name }: { hex: string; name: string | null }) {
   );
 }
 
+const card = "rounded-3xl border border-line bg-white p-5 shadow-sm";
+
 export default async function AdminOrderPage({ params }: { params: Promise<{ id: string }> }) {
   await connection();
   const { id } = await params;
@@ -44,36 +48,35 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   }
   if (!data) notFound();
   const o = data as OrderRow;
+  const whatsapp = whatsappUrl(o.phone);
 
   return (
     <div>
-      <Link href="/admin" className="mb-4 inline-flex min-h-11 items-center font-medium text-gold-deep">
+      <Link href="/admin/orders" className="mb-4 inline-flex min-h-11 items-center font-medium text-gold-deep">
         ← חזרה להזמנות
       </Link>
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 dir="ltr" className="text-right text-3xl font-bold">
+      <div className={`mb-6 rounded-3xl border border-s-4 border-line bg-white p-5 shadow-sm ${statusInfo(o.status).accent}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 dir="ltr" className="text-3xl font-bold">
             {o.order_number}
           </h1>
-          <p className="text-brown-soft">{formatOrderDate(o.created_at)}</p>
+          <StatusBadge status={o.status} />
         </div>
-        <div className="w-full sm:w-56">
-          <StatusSelect orderId={o.id} status={o.status} />
-        </div>
+        <p className="text-brown-soft">{formatOrderDate(o.created_at)}</p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section aria-labelledby="product" className="rounded-3xl border border-line bg-white p-5 shadow-sm">
+        <section aria-labelledby="product" className={card}>
           <h2 id="product" className="mb-4 text-lg font-bold">
-            המזוזה
+            פרטי המוצר
           </h2>
           {o.model_image_url && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={o.model_image_url}
               alt={`מזוזה בדגם ${o.model_name}`}
-              className="mx-auto mb-4 h-72 w-full rounded-2xl border border-line bg-white object-contain"
+              className="mx-auto mb-4 h-80 w-full rounded-2xl border border-line bg-white object-contain sm:h-96"
             />
           )}
           <dl>
@@ -92,7 +95,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
         </section>
 
         <div className="space-y-6">
-          <section aria-labelledby="customer" className="rounded-3xl border border-line bg-white p-5 shadow-sm">
+          <section aria-labelledby="customer" className={card}>
             <h2 id="customer" className="mb-2 text-lg font-bold">
               פרטי הלקוח
             </h2>
@@ -107,13 +110,30 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
                 <span className="whitespace-pre-wrap">{o.customer_note ?? "—"}</span>
               </Row>
             </dl>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <CopyPhoneButton phone={o.phone} />
+              {whatsapp && (
+                <a
+                  href={whatsapp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex min-h-11 items-center rounded-xl border border-line bg-white px-4 font-semibold transition hover:border-gold"
+                >
+                  פתח שיחה ב-WhatsApp
+                </a>
+              )}
+            </div>
           </section>
 
-          <section aria-labelledby="internal" className="rounded-3xl border border-line bg-white p-5 shadow-sm">
-            <h2 id="internal" className="sr-only">
-              הערה פנימית
+          <section aria-labelledby="manage" className={card}>
+            <h2 id="manage" className="mb-4 text-lg font-bold">
+              ניהול ההזמנה
             </h2>
-            <NoteForm orderId={o.id} initialNote={o.internal_note ?? ""} />
+            <p className="mb-1 text-brown-soft">סטטוס</p>
+            <StatusSelect orderId={o.id} status={o.status} />
+            <div className="mt-5">
+              <NoteForm orderId={o.id} initialNote={o.internal_note ?? ""} />
+            </div>
           </section>
         </div>
       </div>

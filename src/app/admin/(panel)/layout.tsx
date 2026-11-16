@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
@@ -36,17 +35,9 @@ async function AdminGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-16">
-      <header className="sticky top-0 z-20 -mx-4 mb-6 border-b border-line bg-cream/95 px-4 py-3 backdrop-blur">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <Link href="/admin" className="text-lg font-bold">
-            לוח ניהול
-          </Link>
-          <LogoutButton />
-        </div>
-        <AdminNav />
-      </header>
-      {children}
+    <div className="lg:flex">
+      <AdminNav />
+      <main className="mx-auto w-full min-w-0 max-w-5xl flex-1 px-4 pb-16 pt-6 lg:px-8 lg:pt-8">{children}</main>
     </div>
   );
 }

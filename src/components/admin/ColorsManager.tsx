@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { createColor, moveRow, updateColor } from "@/app/admin/catalog-actions";
 import { HEX_RE, type AdminColor } from "@/lib/admin/catalog";
-import { ErrorLine, MoveButtons, Toggle, inputClass, primaryButton, useRun } from "./catalog-ui";
+import { ErrorLine, MoveButtons, PositionField, Toggle, inputClass, primaryButton, useRun } from "./catalog-ui";
 
-/** Colour picker + hex text field that stay in sync. Reports every valid change. */
+/** Colour picker + hex text field that stay in sync. Reports every change. */
 function HexField({ id, value, onChange }: { id: string; value: string; onChange: (hex: string) => void }) {
   return (
     <div className="flex items-center gap-2">
@@ -29,30 +29,57 @@ function HexField({ id, value, onChange }: { id: string; value: string; onChange
   );
 }
 
-function ColorRow({ color, isFirst, isLast }: { color: AdminColor; isFirst: boolean; isLast: boolean }) {
+function BigSwatch({ hex }: { hex: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      data-swatch
+      className="block h-20 w-20 shrink-0 rounded-full border-2 border-black/15 shadow-inner"
+      style={{ backgroundColor: HEX_RE.test(hex) ? hex : "#cccccc" }}
+    />
+  );
+}
+
+function ColorCard({ color, position, isFirst, isLast }: { color: AdminColor; position: number; isFirst: boolean; isLast: boolean }) {
   const [name, setName] = useState(color.name);
   const [hex, setHex] = useState(color.hex);
   const { pending, error, run } = useRun();
   const dirty = name.trim() !== color.name || hex.toUpperCase() !== color.hex.toUpperCase();
 
   return (
-    <li className={`rounded-2xl border border-line bg-white p-4 shadow-sm ${color.available ? "" : "opacity-80"}`}>
-      <div className="flex flex-wrap items-center gap-3">
-        <span
-          aria-hidden="true"
-          className="h-12 w-12 shrink-0 rounded-full border border-black/20"
-          style={{ backgroundColor: HEX_RE.test(hex) ? hex : "#cccccc" }}
-        />
-        <label className="sr-only" htmlFor={`cname-${color.id}`}>
-          שם הצבע
-        </label>
-        <input
-          id={`cname-${color.id}`}
-          value={name}
-          maxLength={40}
-          onChange={(e) => setName(e.target.value)}
-          className={`${inputClass} min-w-0 flex-1 basis-40`}
-        />
+    <li
+      data-color-card
+      className={`rounded-2xl border bg-white p-4 shadow-sm ${color.available ? "border-line" : "border-dashed border-[#cfc6b8] bg-[#faf7f2]"}`}
+    >
+      <div className="flex items-center gap-4">
+        <div className={color.available ? "" : "opacity-50"}>
+          <BigSwatch hex={hex} />
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="flex items-center justify-between gap-2 text-sm text-brown-soft">
+            <span>מיקום {position}</span>
+            <span
+              className={`rounded-full border px-3 py-0.5 text-sm font-bold ${
+                color.available ? "border-[#aed3a4] bg-[#e0f0dc] text-[#2f5f27]" : "border-[#d3ccc1] bg-[#ece8e1] text-[#5c5148]"
+              }`}
+            >
+              {color.available ? "זמין" : "לא זמין"}
+            </span>
+          </p>
+          <label className="sr-only" htmlFor={`cname-${color.id}`}>
+            שם הצבע
+          </label>
+          <input
+            id={`cname-${color.id}`}
+            value={name}
+            maxLength={40}
+            onChange={(e) => setName(e.target.value)}
+            className={`${inputClass} font-bold`}
+          />
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <HexField id={`chex-${color.id}`} value={hex} onChange={setHex} />
         {dirty && (
           <button
@@ -65,7 +92,8 @@ function ColorRow({ color, isFirst, isLast }: { color: AdminColor; isFirst: bool
           </button>
         )}
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <Toggle
           checked={color.available}
           disabled={pending}
@@ -81,7 +109,11 @@ function ColorRow({ color, isFirst, isLast }: { color: AdminColor; isFirst: bool
         />
         {pending && <span className="text-sm text-brown-soft">שומר…</span>}
       </div>
-      {error && <div className="mt-2"><ErrorLine>{error}</ErrorLine></div>}
+      {error && (
+        <div className="mt-2">
+          <ErrorLine>{error}</ErrorLine>
+        </div>
+      )}
     </li>
   );
 }
@@ -89,56 +121,77 @@ function ColorRow({ color, isFirst, isLast }: { color: AdminColor; isFirst: bool
 function AddColorForm() {
   const [name, setName] = useState("");
   const [hex, setHex] = useState("#CCCCCC");
+  const [available, setAvailable] = useState(true);
+  const [position, setPosition] = useState("");
   const { pending, error, setError, run } = useRun();
 
   function submit() {
     if (!name.trim()) return setError("יש להזין שם לצבע.");
+    if (!HEX_RE.test(hex)) return setError("קוד הצבע חייב להיות מהצורה #RRGGBB.");
+    const sortOrder = position.trim() ? Number(position) : null;
+    if (sortOrder !== null && (!Number.isInteger(sortOrder) || sortOrder < 1)) return setError("המיקום חייב להיות מספר שלם חיובי.");
     run(
-      () => createColor(name, hex),
+      () => createColor(name, hex, { available, sortOrder }),
       () => {
         setName("");
         setHex("#CCCCCC");
+        setAvailable(true);
+        setPosition("");
       },
     );
   }
 
   return (
     <section aria-labelledby="add-color" className="rounded-2xl border border-gold-soft bg-[#fbf6ed] p-4">
-      <h2 id="add-color" className="mb-3 font-bold">
+      <h2 id="add-color" className="mb-3 text-lg font-bold">
         הוספת צבע
       </h2>
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          aria-label="שם הצבע החדש"
-          placeholder="שם הצבע"
-          value={name}
-          maxLength={40}
-          onChange={(e) => setName(e.target.value)}
-          className={`${inputClass} min-w-0 flex-1 basis-40`}
-        />
-        <HexField id="new-color-hex" value={hex} onChange={setHex} />
-        <button type="button" disabled={pending} onClick={submit} className={primaryButton}>
-          {pending ? "שומר…" : "הוספה"}
-        </button>
+      <div className="grid gap-4 sm:grid-cols-[6rem_minmax(0,1fr)]">
+        <div className="flex flex-col items-center gap-1">
+          <BigSwatch hex={hex} />
+          <span className="text-xs text-brown-soft">תצוגה מקדימה</span>
+        </div>
+        <div className="space-y-3">
+          <input
+            aria-label="שם הצבע החדש"
+            placeholder="שם הצבע"
+            value={name}
+            maxLength={40}
+            onChange={(e) => setName(e.target.value)}
+            className={inputClass}
+          />
+          <HexField id="new-color-hex" value={hex} onChange={setHex} />
+          <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
+            <PositionField value={position} onChange={setPosition} />
+            <Toggle checked={available} onChange={setAvailable} onLabel="זמין מיד" offLabel="יתווסף כלא זמין" />
+          </div>
+        </div>
       </div>
-      {error && <div className="mt-2"><ErrorLine>{error}</ErrorLine></div>}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" disabled={pending} onClick={submit} className={primaryButton}>
+          {pending ? "שומר…" : "הוספת צבע"}
+        </button>
+        {error && <ErrorLine>{error}</ErrorLine>}
+      </div>
     </section>
   );
 }
 
 export default function ColorsManager({ colors }: { colors: AdminColor[] }) {
+  const availableCount = colors.filter((c) => c.available).length;
   return (
     <div className="space-y-5">
       <AddColorForm />
       <p className="text-sm text-brown-soft">
-        צבע שסומן &quot;לא זמין&quot; לא מוצג ללקוחות (לא כצבע גוף ולא כצבע מילוי) אך נשמר בהזמנות קיימות.
+        {colors.length} צבעים, {availableCount} זמינים. צבע שסומן &quot;לא זמין&quot; לא מוצג ללקוחות (לא כצבע גוף ולא כצבע
+        מילוי) אך נשמר בהזמנות קיימות.
       </p>
       {colors.length === 0 ? (
         <p className="rounded-2xl border border-line bg-white p-8 text-center text-brown-soft">עדיין אין צבעים.</p>
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid gap-4 sm:grid-cols-2">
           {colors.map((c, i) => (
-            <ColorRow key={c.id} color={c} isFirst={i === 0} isLast={i === colors.length - 1} />
+            <ColorCard key={c.id} color={c} position={i + 1} isFirst={i === 0} isLast={i === colors.length - 1} />
           ))}
         </ul>
       )}

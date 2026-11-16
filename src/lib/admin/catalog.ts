@@ -19,13 +19,14 @@ export type AdminColor = {
 export type AdminFill = {
   id: "none" | "single";
   name: string;
+  description: string | null;
   available: boolean;
   sort_order: number;
 };
 
 export const MODEL_COLUMNS = "id, name, image_url, active, sort_order, mask_body_url";
 export const COLOR_COLUMNS = "id, name, hex, available, sort_order";
-export const FILL_COLUMNS = "id, name, available, sort_order";
+export const FILL_COLUMNS = "id, name, description, available, sort_order";
 
 export const CATALOG_TABS = [
   { id: "models", label: "דגמים" },
@@ -43,6 +44,11 @@ export function cleanName(value: unknown, max = 80): string | null {
   if (typeof value !== "string") return null;
   const name = value.trim();
   return name.length >= 1 && name.length <= max ? name : null;
+}
+
+/** An optional typed display position: a whole number from 1 to 100000, otherwise null. */
+export function parseSortOrder(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 100000 ? value : null;
 }
 
 export type ActionResult = { ok: true } | { ok: false; error: string };

@@ -14,6 +14,6 @@
 6. **משתני סביבה** (*Project Settings* ← *API*): `NEXT_PUBLIC_SUPABASE_URL` ו-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
    - מקומית: צרו `.env.local` לפי `.env.example`.
    - ב-Vercel: *Settings* ← *Environment Variables* (לכל הסביבות), ואז Redeploy – הערכים נקבעים בזמן build.
-7. **בדיקה:** `/admin/login` ← כניסה ← *הזמנות / קטלוג / הגדרות*. בדף הלקוח (`/`) מבצעים הזמנת בדיקה ורואים אותה ב-`/admin`.
+7. **בדיקה:** `/admin/login` ← כניסה ← *ראשי / הזמנות / דגמים / צבעים / מילויים / הגדרות*. בדף הלקוח (`/`) מבצעים הזמנת בדיקה ורואים אותה ב-`/admin`.
 
 > שימו לב: אל תשתמשו ב-`service_role` key באתר. האתר עובד רק עם ה-publishable key (שם המפתח הציבורי ב-Supabase, בעבר anon), וההרשאות נאכפות במסד הנתונים (RLS).

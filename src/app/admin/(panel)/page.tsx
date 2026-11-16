@@ -1,160 +1,114 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import StatusSelect from "@/components/admin/StatusSelect";
+import StatusBadge from "@/components/admin/StatusBadge";
 import Swatch from "@/components/admin/Swatch";
-import {
-  ORDER_COLUMNS,
-  ORDER_STATUSES,
-  fillLabel,
-  formatOrderDate,
-  isOrderStatus,
-  type OrderRow,
-} from "@/lib/admin/orders";
+import { ORDER_COLUMNS, formatOrderDate, statusInfo, type OrderRow, type OrderStatus } from "@/lib/admin/orders";
 import { createSessionSupabase } from "@/lib/supabase/server";
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
+const RECENT_COUNT = 8;
 
-export default async function AdminOrdersPage({ searchParams }: { searchParams: SearchParams }) {
+/** Dashboard: live counters straight from the database, then the latest orders. */
+export default async function AdminDashboardPage() {
   await connection();
-  const sp = await searchParams;
-  // Characters that have a meaning inside a PostgREST filter are replaced before searching.
-  const q = first(sp.q).replace(/[,()%*\\"]/g, " ").trim().slice(0, 60);
-  const statusParam = first(sp.status);
-  const status = isOrderStatus(statusParam) ? statusParam : null;
-
   const supabase = await createSessionSupabase();
-  let query = supabase.from("orders").select(ORDER_COLUMNS).order("created_at", { ascending: false }).limit(300);
-  if (status) query = query.eq("status", status);
-  if (q) {
-    // One search box: customer name, phone number (digits only) or order number.
-    const digits = q.replace(/\D/g, "");
-    const parts = [`customer_name.ilike.%${q}%`, `order_number.ilike.%${q}%`];
-    if (digits.length >= 3) parts.push(`phone.ilike.%${digits}%`);
-    query = query.or(parts.join(","));
-  }
-  const { data, error } = await query;
-  const orders = (data ?? []) as OrderRow[];
 
-  const chipHref = (s: string | null) => {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (s) params.set("status", s);
-    const qs = params.toString();
-    return qs ? `/admin?${qs}` : "/admin";
+  const countFor = async (status: OrderStatus | null) => {
+    let q = supabase.from("orders").select("id", { count: "exact", head: true });
+    if (status) q = q.eq("status", status);
+    const { count, error } = await q;
+    return error ? null : (count ?? 0);
   };
+
+  const [newCount, printingCount, readyCount, totalCount, recent] = await Promise.all([
+    countFor("new"),
+    countFor("printing"),
+    countFor("ready"),
+    countFor(null),
+    supabase.from("orders").select(ORDER_COLUMNS).order("created_at", { ascending: false }).limit(RECENT_COUNT),
+  ]);
+
+  const kpis: { label: string; value: number | null; href: string; status: OrderStatus | null }[] = [
+    { label: "הזמנות חדשות", value: newCount, href: "/admin/orders?status=new", status: "new" },
+    { label: "בהדפסה", value: printingCount, href: "/admin/orders?status=printing", status: "printing" },
+    { label: "מוכנות", value: readyCount, href: "/admin/orders?status=ready", status: "ready" },
+    { label: 'סה"כ הזמנות', value: totalCount, href: "/admin/orders", status: null },
+  ];
+  const orders = (recent.data ?? []) as OrderRow[];
 
   return (
     <div>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <h1 className="text-2xl font-bold">הזמנות</h1>
-        <p className="text-sm text-brown-soft">{error ? "" : `${orders.length} הזמנות`}</p>
-      </div>
+      <h1 className="mb-5 text-2xl font-bold">ראשי</h1>
 
-      <form method="get" action="/admin" className="mb-4 flex gap-2">
-        {status && <input type="hidden" name="status" value={status} />}
-        <label htmlFor="q" className="sr-only">
-          חיפוש לפי שם, טלפון או מספר הזמנה
-        </label>
-        <input
-          id="q"
-          name="q"
-          defaultValue={q}
-          placeholder="חיפוש לפי שם, טלפון או מספר הזמנה"
-          className="min-h-12 min-w-0 flex-1 rounded-xl border border-[#dccfbd] bg-white px-4 text-base outline-none focus:border-gold focus:ring-2 focus:ring-gold-soft"
-        />
-        <button type="submit" className="min-h-12 rounded-xl bg-brown px-6 font-bold text-white">
-          חיפוש
-        </button>
-        {(q || status) && (
-          <Link href="/admin" className="flex min-h-12 items-center rounded-xl border border-line bg-white px-4 font-medium">
-            ניקוי
+      <section aria-label="סיכום הזמנות" className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {kpis.map((k) => (
+          <Link
+            key={k.label}
+            href={k.href}
+            data-kpi
+            className={`rounded-2xl border border-t-4 border-line bg-white p-4 shadow-sm transition hover:border-gold ${
+              k.status ? statusInfo(k.status).top : "border-t-brown"
+            }`}
+          >
+            <p className="text-sm font-medium text-brown-soft">{k.label}</p>
+            <p className="mt-1 text-4xl font-bold tabular-nums">{k.value ?? "—"}</p>
           </Link>
-        )}
-      </form>
+        ))}
+      </section>
 
-      <nav aria-label="סינון לפי סטטוס" className="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-1">
-        {[{ value: null, label: "הכל" }, ...ORDER_STATUSES].map((s) => {
-          const active = (s.value ?? null) === status;
-          return (
-            <Link
-              key={s.value ?? "all"}
-              href={chipHref(s.value)}
-              aria-current={active ? "true" : undefined}
-              className={`flex min-h-11 shrink-0 items-center rounded-full border px-5 font-semibold ${
-                active ? "border-brown bg-brown text-white" : "border-line bg-white hover:border-gold"
-              }`}
-            >
-              {s.label}
-            </Link>
-          );
-        })}
-      </nav>
+      <section aria-labelledby="recent">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 id="recent" className="text-xl font-bold">
+            הזמנות אחרונות
+          </h2>
+          <Link href="/admin/orders" className="inline-flex min-h-11 items-center font-medium text-gold-deep">
+            לכל ההזמנות ←
+          </Link>
+        </div>
 
-      {error ? (
-        <p role="alert" className="rounded-2xl border border-line bg-white p-6 text-center text-error">
-          לא הצלחנו לטעון את ההזמנות. רעננו את הדף ונסו שוב.
-        </p>
-      ) : orders.length === 0 ? (
-        <p className="rounded-2xl border border-line bg-white p-8 text-center text-brown-soft">
-          {q || status ? "לא נמצאו הזמנות שמתאימות לחיפוש." : "עדיין אין הזמנות."}
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {orders.map((o) => (
-            <li key={o.id}>
-              <article className="grid gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm md:grid-cols-[minmax(0,1fr)_13rem] md:items-center">
-                <Link href={`/admin/orders/${o.id}`} className="flex gap-4 rounded-xl outline-offset-4">
+        {recent.error ? (
+          <p role="alert" className="rounded-2xl border border-line bg-white p-6 text-center text-error">
+            לא הצלחנו לטעון את ההזמנות. רעננו את הדף ונסו שוב.
+          </p>
+        ) : orders.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-white p-8 text-center text-brown-soft">עדיין אין הזמנות.</p>
+        ) : (
+          <ul className="space-y-2">
+            {orders.map((o) => (
+              <li key={o.id}>
+                <Link
+                  href={`/admin/orders/${o.id}`}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line bg-white p-3 shadow-sm transition hover:border-gold sm:flex-nowrap"
+                >
                   {o.model_image_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={o.model_image_url}
                       alt=""
-                      className="h-20 w-20 shrink-0 rounded-xl border border-line bg-white object-contain"
+                      className="h-14 w-14 shrink-0 rounded-lg border border-line bg-white object-contain"
                     />
                   )}
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-baseline gap-x-3 text-sm text-brown-soft">
-                      <strong dir="ltr" className="text-base text-brown">
-                        {o.order_number}
-                      </strong>
-                      <span>{formatOrderDate(o.created_at)}</span>
+                  <div className="min-w-0 flex-1 basis-40">
+                    <p className="flex flex-wrap items-baseline gap-x-3">
+                      <strong dir="ltr">{o.order_number}</strong>
+                      <span className="font-bold">{o.customer_name}</span>
                     </p>
-                    <p className="mt-0.5 font-bold">
-                      {o.customer_name}{" "}
-                      <span dir="ltr" className="font-normal text-brown-soft">
-                        {o.phone}
-                      </span>
-                    </p>
-                    <p className="mt-1 text-sm">
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-brown-soft">
                       {o.model_name}
-                      <span className="mx-2 text-line">|</span>
+                      <span className="text-line">|</span>
                       <span className="inline-flex items-center gap-1.5">
                         <Swatch hex={o.body_color_hex} /> {o.body_color_name}
                       </span>
-                    </p>
-                    <p className="mt-1 text-sm text-brown-soft">
-                      מילוי: {fillLabel(o)}
-                      {o.fill_color_hex && (
-                        <span className="ms-1 inline-flex items-center gap-1.5">
-                          <Swatch hex={o.fill_color_hex} /> {o.fill_color_name}
-                        </span>
-                      )}
-                      {o.personal_text && (
-                        <>
-                          <span className="mx-2 text-line">|</span>
-                          טקסט: <strong className="text-brown">{o.personal_text}</strong>
-                        </>
-                      )}
+                      <span className="text-line">|</span>
+                      {formatOrderDate(o.created_at)}
                     </p>
                   </div>
+                  <StatusBadge status={o.status} />
                 </Link>
-                <StatusSelect orderId={o.id} status={o.status} />
-              </article>
-            </li>
-          ))}
-        </ul>
-      )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

@@ -28,6 +28,26 @@ export const primaryButton =
 export const secondaryButton =
   "flex min-h-12 min-w-12 items-center justify-center rounded-xl border border-line bg-white px-3 font-semibold transition hover:border-gold disabled:cursor-not-allowed disabled:opacity-40";
 
+/** Optional "display position" number field for the add forms. */
+export function PositionField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm font-medium text-brown-soft">מיקום בתצוגה (אופציונלי)</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={1}
+        max={100000}
+        dir="ltr"
+        value={value}
+        placeholder="בסוף הרשימה"
+        onChange={(e) => onChange(e.target.value)}
+        className={`${inputClass} text-right`}
+      />
+    </label>
+  );
+}
+
 /** Accessible on/off switch with a visible text label. */
 export function Toggle({
   checked,
@@ -81,21 +101,21 @@ export function MoveButtons({
     <div className="flex gap-2">
       <button
         type="button"
-        aria-label="הזזה למעלה"
+        aria-label="הזזה קדימה"
         disabled={disabled || isFirst}
         onClick={() => onMove("up")}
         className={secondaryButton}
       >
-        ↑
+        →
       </button>
       <button
         type="button"
-        aria-label="הזזה למטה"
+        aria-label="הזזה אחורה"
         disabled={disabled || isLast}
         onClick={() => onMove("down")}
         className={secondaryButton}
       >
-        ↓
+        ←
       </button>
     </div>
   );
