@@ -3,25 +3,27 @@ import type { Catalog } from "@/lib/catalog/types";
 // The personal-text limit and its helper text come from the admin settings (catalog.settings).
 export const MAX_NOTE = 300;
 
-export type OrderValues = {
+/** One mezuzah as the customer configures it (the cart holds many of these). */
+export type ItemValues = {
   modelId: string | null;
   colorId: string | null;
   fillId: string;
   fillColorId: string | null;
   personalText: string;
+};
+
+/** The contact details, entered once at checkout (never stored in the browser). */
+export type CustomerValues = {
   fullName: string;
   phone: string;
   note: string;
 };
 
-export type FieldKey =
-  | "model"
-  | "color"
-  | "fill"
-  | "personalText"
-  | "fullName"
-  | "phone";
-export type OrderErrors = Partial<Record<FieldKey, string>>;
+export type ItemFieldKey = "model" | "color" | "fill" | "personalText";
+export type CustomerFieldKey = "fullName" | "phone";
+export type FieldKey = ItemFieldKey | CustomerFieldKey;
+export type ItemErrors = Partial<Record<ItemFieldKey, string>>;
+export type CustomerErrors = Partial<Record<CustomerFieldKey, string>>;
 
 // Hebrew letters, niqqud, spaces, geresh/gershayim and a hyphen - nothing else.
 const HEBREW_ONLY = /^[א-תְ-ׇ\s׳״'"\-]+$/;
@@ -37,8 +39,8 @@ export function normalizePhone(raw: string): string {
 }
 
 /** Validates against the live catalog: it only holds active models and available colours / fills. */
-export function validateOrder(values: OrderValues, catalog: Catalog): OrderErrors {
-  const errors: OrderErrors = {};
+export function validateItem(values: ItemValues, catalog: Catalog): ItemErrors {
+  const errors: ItemErrors = {};
   const hasColor = (id: string | null) => catalog.colors.some((c) => c.id === id);
 
   const model = catalog.models.find((m) => m.id === values.modelId);
@@ -64,6 +66,13 @@ export function validateOrder(values: OrderValues, catalog: Catalog): OrderError
     }
   }
 
+  return errors;
+}
+
+/** Name and phone for the checkout form. */
+export function validateCustomer(values: Pick<CustomerValues, "fullName" | "phone">): CustomerErrors {
+  const errors: CustomerErrors = {};
+
   if (values.fullName.trim().length < 2) {
     errors.fullName = "יש להזין שם מלא";
   }
@@ -77,14 +86,8 @@ export function validateOrder(values: OrderValues, catalog: Catalog): OrderError
   return errors;
 }
 
-export const FIELD_ORDER: FieldKey[] = [
-  "model",
-  "color",
-  "fill",
-  "personalText",
-  "fullName",
-  "phone",
-];
+export const ITEM_FIELD_ORDER: ItemFieldKey[] = ["model", "color", "fill", "personalText"];
+export const CUSTOMER_FIELD_ORDER: CustomerFieldKey[] = ["fullName", "phone"];
 
 /** DOM id to focus for the first invalid field. */
 export const FIELD_DOM_ID: Record<FieldKey, string> = {

@@ -7,7 +7,18 @@ import NoteForm from "@/components/admin/NoteForm";
 import StatusBadge from "@/components/admin/StatusBadge";
 import StatusSelect from "@/components/admin/StatusSelect";
 import Swatch from "@/components/admin/Swatch";
-import { ORDER_COLUMNS, UUID_RE, fillLabel, formatOrderDate, statusInfo, whatsappUrl, type OrderRow } from "@/lib/admin/orders";
+import {
+  UUID_RE,
+  fetchOrders,
+  fillLabel,
+  formatOrderDate,
+  statusInfo,
+  unitCount,
+  unitsLabel,
+  whatsappUrl,
+  type OrderItemRow,
+} from "@/lib/admin/orders";
+import { formatPrice } from "@/lib/money";
 import { createSessionSupabase } from "@/lib/supabase/server";
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -30,6 +41,49 @@ function ColorValue({ hex, name }: { hex: string; name: string | null }) {
   );
 }
 
+const money = (agorot: number | null) => (agorot === null ? "—" : formatPrice(agorot));
+
+/** One item of the order: photo, every option, quantity and price. */
+function ItemCard({ item, index }: { item: OrderItemRow; index: number }) {
+  return (
+    <li data-order-item className="rounded-2xl border border-line bg-paper p-4">
+      <div className="flex flex-wrap gap-4 sm:flex-nowrap">
+        {item.model_image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.model_image_url}
+            alt={`מזוזה בדגם ${item.model_name}`}
+            className="h-40 w-full shrink-0 rounded-xl border border-line bg-white object-contain sm:h-36 sm:w-36"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="mb-1 text-sm text-brown-soft">פריט {index + 1}</p>
+          <dl>
+            <Row label="דגם">{item.model_name}</Row>
+            <Row label="צבע גוף">
+              <ColorValue hex={item.body_color_hex} name={item.body_color_name} />
+            </Row>
+            <Row label="מילוי">{fillLabel(item)}</Row>
+            {item.fill_type === "single" && item.fill_color_hex && (
+              <Row label="צבע מילוי">
+                <ColorValue hex={item.fill_color_hex} name={item.fill_color_name} />
+              </Row>
+            )}
+            <Row label="טקסט אישי">{item.personal_text ?? "—"}</Row>
+            <Row label="כמות">
+              <span data-item-quantity>{item.quantity}</span>
+            </Row>
+            <Row label="מחיר ליחידה">{money(item.unit_price_agorot)}</Row>
+            <Row label="סה״כ לפריט">
+              <strong data-item-total>{money(item.line_total_agorot)}</strong>
+            </Row>
+          </dl>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 const card = "rounded-3xl border border-line bg-white p-5 shadow-sm";
 
 export default async function AdminOrderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -38,17 +92,18 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   if (!UUID_RE.test(id)) notFound();
 
   const supabase = await createSessionSupabase();
-  const { data, error } = await supabase.from("orders").select(ORDER_COLUMNS).eq("id", id).maybeSingle();
-  if (error) {
+  const { orders, error } = await fetchOrders((columns) => supabase.from("orders").select(columns).eq("id", id).maybeSingle());
+  if (error && orders.length === 0) {
     return (
       <p role="alert" className="rounded-2xl border border-line bg-white p-6 text-center text-error">
         לא הצלחנו לטעון את ההזמנה. רעננו את הדף ונסו שוב.
       </p>
     );
   }
-  if (!data) notFound();
-  const o = data as OrderRow;
+  const o = orders[0];
+  if (!o) notFound();
   const whatsapp = whatsappUrl(o.phone);
+  const units = unitCount(o);
 
   return (
     <div>
@@ -67,31 +122,27 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section aria-labelledby="product" className={card}>
-          <h2 id="product" className="mb-4 text-lg font-bold">
-            פרטי המוצר
+        <section aria-labelledby="items" className={card}>
+          <h2 id="items" className="mb-4 text-lg font-bold">
+            פריטי ההזמנה <span className="text-sm font-normal text-brown-soft">({unitsLabel(units)})</span>
           </h2>
-          {o.model_image_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={o.model_image_url}
-              alt={`מזוזה בדגם ${o.model_name}`}
-              className="mx-auto mb-4 h-80 w-full rounded-2xl border border-line bg-white object-contain sm:h-96"
-            />
+          <ul className="space-y-4">
+            {o.items.map((item, i) => (
+              <ItemCard key={item.line_number} item={item} index={i} />
+            ))}
+          </ul>
+          <p className="mt-4 flex items-baseline justify-between gap-3 border-t border-line pt-4">
+            <span className="text-lg font-bold">סה״כ הזמנה</span>
+            <span>
+              <strong data-order-total className="text-2xl">
+                {money(o.total_amount_agorot)}
+              </strong>{" "}
+              {o.total_amount_agorot !== null && <span className="text-sm text-brown-soft">כולל מע״מ</span>}
+            </span>
+          </p>
+          {o.total_amount_agorot === null && (
+            <p className="mt-2 text-sm text-brown-soft">הזמנה זו נוצרה לפני שנוספו מחירים לאתר, ולכן אין לה סכום.</p>
           )}
-          <dl>
-            <Row label="דגם">{o.model_name}</Row>
-            <Row label="צבע גוף">
-              <ColorValue hex={o.body_color_hex} name={o.body_color_name} />
-            </Row>
-            <Row label="מילוי">{fillLabel(o)}</Row>
-            {o.fill_type === "single" && o.fill_color_hex && (
-              <Row label="צבע מילוי">
-                <ColorValue hex={o.fill_color_hex} name={o.fill_color_name} />
-              </Row>
-            )}
-            <Row label="טקסט אישי">{o.personal_text ?? "—"}</Row>
-          </dl>
         </section>
 
         <div className="space-y-6">

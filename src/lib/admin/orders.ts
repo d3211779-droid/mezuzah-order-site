@@ -13,17 +13,9 @@ export const isOrderStatus = (value: unknown): value is OrderStatus =>
 
 export const statusInfo = (status: string) => ORDER_STATUSES.find((s) => s.value === status) ?? ORDER_STATUSES[0];
 
-/** The columns the admin screens read from the `orders` table. */
-export const ORDER_COLUMNS =
-  "id, order_number, created_at, customer_name, phone, customer_note, model_name, model_image_url, body_color_name, body_color_hex, fill_type, fill_color_name, fill_color_hex, personal_text, internal_note, status";
-
-export type OrderRow = {
-  id: string;
-  order_number: string;
-  created_at: string;
-  customer_name: string;
-  phone: string;
-  customer_note: string | null;
+/** One item of an order (a row of `order_items`). Prices are null only on orders placed before prices existed. */
+export type OrderItemRow = {
+  line_number: number;
   model_name: string;
   model_image_url: string | null;
   body_color_name: string;
@@ -32,9 +24,92 @@ export type OrderRow = {
   fill_color_name: string | null;
   fill_color_hex: string | null;
   personal_text: string | null;
+  quantity: number;
+  unit_price_agorot: number | null;
+  line_total_agorot: number | null;
+};
+
+export type OrderRow = {
+  id: string;
+  order_number: string;
+  created_at: string;
+  customer_name: string;
+  phone: string;
+  customer_note: string | null;
   internal_note: string | null;
   status: OrderStatus;
+  /** null on orders placed before prices existed. */
+  total_amount_agorot: number | null;
+  items: OrderItemRow[];
 };
+
+const ITEM_COLUMNS =
+  "line_number, model_name, model_image_url, body_color_name, body_color_hex, fill_type, fill_color_name, fill_color_hex, personal_text, quantity, unit_price_agorot, line_total_agorot";
+
+/** The columns the admin screens read: the order plus all of its items. */
+export const ORDER_COLUMNS = `id, order_number, created_at, customer_name, phone, customer_note, internal_note, status, total_amount_agorot, order_items(${ITEM_COLUMNS})`;
+
+/** Used only if supabase/cart-orders.sql has not been run yet: the single product stored on the order itself. */
+const LEGACY_ORDER_COLUMNS =
+  "id, order_number, created_at, customer_name, phone, customer_note, internal_note, status, model_name, model_image_url, body_color_name, body_color_hex, fill_type, fill_color_name, fill_color_hex, personal_text";
+
+/** Turns a database row (new or legacy shape) into an OrderRow with its items. */
+function normalizeOrder(raw: Record<string, unknown>): OrderRow {
+  const base = raw as unknown as OrderRow & { order_items?: OrderItemRow[] } & Partial<OrderItemRow>;
+  const items: OrderItemRow[] = Array.isArray(base.order_items)
+    ? [...base.order_items].sort((a, b) => a.line_number - b.line_number)
+    : [
+        {
+          line_number: 1,
+          model_name: base.model_name ?? "",
+          model_image_url: base.model_image_url ?? null,
+          body_color_name: base.body_color_name ?? "",
+          body_color_hex: base.body_color_hex ?? "#cccccc",
+          fill_type: base.fill_type === "single" ? "single" : "none",
+          fill_color_name: base.fill_color_name ?? null,
+          fill_color_hex: base.fill_color_hex ?? null,
+          personal_text: base.personal_text ?? null,
+          quantity: 1,
+          unit_price_agorot: null,
+          line_total_agorot: null,
+        },
+      ];
+  return {
+    id: base.id,
+    order_number: base.order_number,
+    created_at: base.created_at,
+    customer_name: base.customer_name,
+    phone: base.phone,
+    customer_note: base.customer_note,
+    internal_note: base.internal_note,
+    status: base.status,
+    total_amount_agorot: base.total_amount_agorot ?? null,
+    items,
+  };
+}
+
+type QueryResult = { data: unknown; error: { code?: string; message?: string } | null };
+
+// "relationship / table / column / permission missing": the new SQL has not been applied yet.
+const NEW_SCHEMA_MISSING = new Set(["PGRST200", "PGRST204", "PGRST205", "42P01", "42703", "42501"]);
+
+/**
+ * Runs an orders query with the multi-item columns. If the database does not have order_items yet
+ * (cart-orders.sql not run), it quietly repeats the query with the old single-product columns, so
+ * the admin keeps working in every order of deployment. Accepts queries returning one row or many.
+ */
+export async function fetchOrders(
+  run: (columns: string) => PromiseLike<QueryResult>,
+): Promise<{ orders: OrderRow[]; error: QueryResult["error"] }> {
+  let result = await run(ORDER_COLUMNS);
+  if (result.error && NEW_SCHEMA_MISSING.has(result.error.code ?? "")) {
+    console.warn(`[admin orders] order_items not available (${result.error.code}) - using the legacy columns. Run supabase/cart-orders.sql.`);
+    result = await run(LEGACY_ORDER_COLUMNS);
+  }
+  const raw = result.data;
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  return { orders: list.map((row) => normalizeOrder(row as Record<string, unknown>)), error: result.error };
+}
 
 const dateFormat = new Intl.DateTimeFormat("he-IL", {
   dateStyle: "short",
@@ -44,7 +119,11 @@ const dateFormat = new Intl.DateTimeFormat("he-IL", {
 
 export const formatOrderDate = (iso: string) => dateFormat.format(new Date(iso));
 
-export const fillLabel = (o: Pick<OrderRow, "fill_type">) => (o.fill_type === "single" ? "צבע אחד" : "ללא מילוי");
+export const fillLabel = (item: Pick<OrderItemRow, "fill_type">) => (item.fill_type === "single" ? "צבע אחד" : "ללא מילוי");
+
+/** Number of units in an order ("3 פריטים"). */
+export const unitCount = (o: Pick<OrderRow, "items">) => o.items.reduce((sum, i) => sum + i.quantity, 0);
+export const unitsLabel = (n: number) => (n === 1 ? "פריט אחד" : `${n} פריטים`);
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

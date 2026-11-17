@@ -2,7 +2,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import StatusBadge from "@/components/admin/StatusBadge";
 import Swatch from "@/components/admin/Swatch";
-import { ORDER_COLUMNS, formatOrderDate, statusInfo, type OrderRow, type OrderStatus } from "@/lib/admin/orders";
+import { fetchOrders, formatOrderDate, statusInfo, unitCount, unitsLabel, type OrderStatus } from "@/lib/admin/orders";
+import { formatPrice } from "@/lib/money";
 import { createSessionSupabase } from "@/lib/supabase/server";
 
 const RECENT_COUNT = 8;
@@ -24,7 +25,7 @@ export default async function AdminDashboardPage() {
     countFor("printing"),
     countFor("ready"),
     countFor(null),
-    supabase.from("orders").select(ORDER_COLUMNS).order("created_at", { ascending: false }).limit(RECENT_COUNT),
+    fetchOrders((columns) => supabase.from("orders").select(columns).order("created_at", { ascending: false }).limit(RECENT_COUNT)),
   ]);
 
   const kpis: { label: string; value: number | null; href: string; status: OrderStatus | null }[] = [
@@ -33,7 +34,7 @@ export default async function AdminDashboardPage() {
     { label: "מוכנות", value: readyCount, href: "/admin/orders?status=ready", status: "ready" },
     { label: 'סה"כ הזמנות', value: totalCount, href: "/admin/orders", status: null },
   ];
-  const orders = (recent.data ?? []) as OrderRow[];
+  const orders = recent.orders;
 
   return (
     <div>
@@ -65,7 +66,7 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
 
-        {recent.error ? (
+        {recent.error && orders.length === 0 ? (
           <p role="alert" className="rounded-2xl border border-line bg-white p-6 text-center text-error">
             לא הצלחנו לטעון את ההזמנות. רעננו את הדף ונסו שוב.
           </p>
@@ -73,16 +74,18 @@ export default async function AdminDashboardPage() {
           <p className="rounded-2xl border border-line bg-white p-8 text-center text-brown-soft">עדיין אין הזמנות.</p>
         ) : (
           <ul className="space-y-2">
-            {orders.map((o) => (
+            {orders.map((o) => {
+              const firstItem = o.items[0];
+              return (
               <li key={o.id}>
                 <Link
                   href={`/admin/orders/${o.id}`}
                   className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-line bg-white p-3 shadow-sm transition hover:border-gold sm:flex-nowrap"
                 >
-                  {o.model_image_url && (
+                  {firstItem?.model_image_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={o.model_image_url}
+                      src={firstItem.model_image_url}
                       alt=""
                       className="h-14 w-14 shrink-0 rounded-lg border border-line bg-white object-contain"
                     />
@@ -93,19 +96,28 @@ export default async function AdminDashboardPage() {
                       <span className="font-bold">{o.customer_name}</span>
                     </p>
                     <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-brown-soft">
-                      {o.model_name}
+                      {firstItem?.model_name}
+                      {o.items.length > 1 && <span className="font-medium text-brown"> +{o.items.length - 1}</span>}
                       <span className="text-line">|</span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <Swatch hex={o.body_color_hex} /> {o.body_color_name}
-                      </span>
-                      <span className="text-line">|</span>
+                      {firstItem && (
+                        <>
+                          <span className="inline-flex items-center gap-1.5">
+                            <Swatch hex={firstItem.body_color_hex} /> {firstItem.body_color_name}
+                          </span>
+                          <span className="text-line">|</span>
+                        </>
+                      )}
                       {formatOrderDate(o.created_at)}
+                    </p>
+                    <p className="mt-0.5 text-sm">
+                      {unitsLabel(unitCount(o))} · <strong>{o.total_amount_agorot === null ? "—" : formatPrice(o.total_amount_agorot)}</strong>
                     </p>
                   </div>
                   <StatusBadge status={o.status} />
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </section>

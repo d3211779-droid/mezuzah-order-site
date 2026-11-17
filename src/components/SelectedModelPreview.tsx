@@ -1,12 +1,12 @@
 import { useCatalog } from "@/lib/catalog/context";
-import type { OrderValues } from "@/lib/validation";
+import type { ItemValues } from "@/lib/validation";
 import ZoomableModelImage from "./ZoomableModelImage";
 
 /**
  * Large live preview of the chosen model. It is the same photo as in the gallery,
  * recoloured from the customer's body / fill choices (colours come from the catalog).
  */
-export default function SelectedModelPreview({ values }: { values: OrderValues }) {
+export default function SelectedModelPreview({ values }: { values: ItemValues }) {
   const { getModel, getColor } = useCatalog();
   const model = getModel(values.modelId);
   const tint = {

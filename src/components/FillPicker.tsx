@@ -1,8 +1,8 @@
 import { useCatalog } from "@/lib/catalog/context";
-import type { OrderValues } from "@/lib/validation";
+import type { ItemValues } from "@/lib/validation";
 import ColorPicker from "./ColorPicker";
 
-type FillValues = Pick<OrderValues, "fillId" | "fillColorId">;
+type FillValues = Pick<ItemValues, "fillId" | "fillColorId">;
 
 type Props = {
   values: FillValues;
