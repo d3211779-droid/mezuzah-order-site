@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useCatalog } from "@/lib/catalog/context";
 import { formatPrice } from "@/lib/money";
 import type { ItemValues } from "@/lib/validation";
+import Swatch from "./Swatch";
 
 const EMPTY = "—";
 
@@ -11,11 +12,7 @@ function ColorValue({ id }: { id: string | null }) {
   if (!color) return <>{EMPTY}</>;
   return (
     <span className="inline-flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className="inline-block h-4 w-4 shrink-0 rounded-full border border-white/60"
-        style={{ backgroundColor: color.hex }}
-      />
+      <Swatch hex={color.hex} name={color.name} className="h-4 w-4 border-white/60" />
       {color.name}
     </span>
   );

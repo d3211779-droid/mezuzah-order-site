@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createColor, moveRow, updateColor } from "@/app/admin/catalog-actions";
 import { HEX_RE, type AdminColor } from "@/lib/admin/catalog";
+import { swatchStyle } from "@/lib/colors/swatch";
 import { ErrorLine, MoveButtons, PositionField, Toggle, inputClass, primaryButton, useRun } from "./catalog-ui";
 
 /** Colour picker + hex text field that stay in sync. Reports every change. */
@@ -29,13 +30,13 @@ function HexField({ id, value, onChange }: { id: string; value: string; onChange
   );
 }
 
-function BigSwatch({ hex }: { hex: string }) {
+function BigSwatch({ hex, name }: { hex: string; name: string }) {
   return (
     <span
       aria-hidden="true"
       data-swatch
       className="block h-20 w-20 shrink-0 rounded-full border-2 border-black/15 shadow-inner"
-      style={{ backgroundColor: HEX_RE.test(hex) ? hex : "#cccccc" }}
+      style={swatchStyle(HEX_RE.test(hex) ? hex : "#cccccc", name, "lg")}
     />
   );
 }
@@ -53,7 +54,7 @@ function ColorCard({ color, position, isFirst, isLast }: { color: AdminColor; po
     >
       <div className="flex items-center gap-4">
         <div className={color.available ? "" : "opacity-50"}>
-          <BigSwatch hex={hex} />
+          <BigSwatch hex={hex} name={name} />
         </div>
         <div className="min-w-0 flex-1 space-y-2">
           <p className="flex items-center justify-between gap-2 text-sm text-brown-soft">
@@ -148,7 +149,7 @@ function AddColorForm() {
       </h2>
       <div className="grid gap-4 sm:grid-cols-[6rem_minmax(0,1fr)]">
         <div className="flex flex-col items-center gap-1">
-          <BigSwatch hex={hex} />
+          <BigSwatch hex={hex} name={name} />
           <span className="text-xs text-brown-soft">תצוגה מקדימה</span>
         </div>
         <div className="space-y-3">

@@ -1,14 +1,9 @@
 import type { ResolvedLine } from "@/lib/cart/resolve";
 import ModelImage from "./ModelImage";
+import Swatch from "./Swatch";
 
-function Dot({ hex }: { hex: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-black/20 align-middle"
-      style={{ backgroundColor: hex }}
-    />
-  );
+function Dot({ hex, name }: { hex: string; name: string }) {
+  return <Swatch hex={hex} name={name} className="h-3.5 w-3.5 align-middle" />;
 }
 
 /** The mezuzah photo, tinted with the chosen colours (the same preview as on the order screen). */
@@ -44,7 +39,7 @@ export function ItemDetails({ item }: { item: ResolvedLine }) {
           <dd className="inline-flex items-center gap-1.5 text-brown">
             {item.bodyColor ? (
               <>
-                <Dot hex={item.bodyColor.hex} /> {item.bodyColor.name}
+                <Dot hex={item.bodyColor.hex} name={item.bodyColor.name} /> {item.bodyColor.name}
               </>
             ) : (
               "—"
@@ -60,7 +55,7 @@ export function ItemDetails({ item }: { item: ResolvedLine }) {
                 {item.fillColor && (
                   <>
                     {" · "}
-                    <Dot hex={item.fillColor.hex} /> {item.fillColor.name}
+                    <Dot hex={item.fillColor.hex} name={item.fillColor.name} /> {item.fillColor.name}
                   </>
                 )}
               </>

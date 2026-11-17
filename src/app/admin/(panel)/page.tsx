@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import StatusBadge from "@/components/admin/StatusBadge";
-import Swatch from "@/components/admin/Swatch";
+import Swatch from "@/components/Swatch";
 import { fetchOrders, formatOrderDate, statusInfo, unitCount, unitsLabel, type OrderStatus } from "@/lib/admin/orders";
 import { formatPrice } from "@/lib/money";
 import { createSessionSupabase } from "@/lib/supabase/server";
@@ -102,7 +102,7 @@ export default async function AdminDashboardPage() {
                       {firstItem && (
                         <>
                           <span className="inline-flex items-center gap-1.5">
-                            <Swatch hex={firstItem.body_color_hex} /> {firstItem.body_color_name}
+                            <Swatch hex={firstItem.body_color_hex} name={firstItem.body_color_name} /> {firstItem.body_color_name}
                           </span>
                           <span className="text-line">|</span>
                         </>

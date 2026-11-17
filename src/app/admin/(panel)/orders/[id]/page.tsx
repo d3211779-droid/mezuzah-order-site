@@ -6,7 +6,7 @@ import CopyPhoneButton from "@/components/admin/CopyPhoneButton";
 import NoteForm from "@/components/admin/NoteForm";
 import StatusBadge from "@/components/admin/StatusBadge";
 import StatusSelect from "@/components/admin/StatusSelect";
-import Swatch from "@/components/admin/Swatch";
+import Swatch from "@/components/Swatch";
 import {
   UUID_RE,
   fetchOrders,
@@ -33,7 +33,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 function ColorValue({ hex, name }: { hex: string; name: string | null }) {
   return (
     <span className="inline-flex items-center gap-2">
-      <Swatch hex={hex} className="h-5 w-5" /> {name}
+      <Swatch hex={hex} name={name} size="lg" className="h-5 w-5" /> {name}
       <span dir="ltr" className="text-sm font-normal text-brown-soft">
         {hex}
       </span>

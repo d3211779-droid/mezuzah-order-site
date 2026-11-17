@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import StatusSelect from "@/components/admin/StatusSelect";
-import Swatch from "@/components/admin/Swatch";
+import Swatch from "@/components/Swatch";
 import {
   ORDER_STATUSES,
   applyOrderSearch,
@@ -171,14 +171,14 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                             <span className="mx-2 text-line">|</span>
                             גוף:{" "}
                             <span className="inline-flex items-center gap-1.5">
-                              <Swatch hex={firstItem.body_color_hex} /> {firstItem.body_color_name}
+                              <Swatch hex={firstItem.body_color_hex} name={firstItem.body_color_name} /> {firstItem.body_color_name}
                             </span>
                           </p>
                           <p className="mt-1 text-sm text-brown-soft">
                             מילוי: {fillLabel(firstItem)}
                             {firstItem.fill_type === "single" && firstItem.fill_color_hex && (
                               <span className="ms-1 inline-flex items-center gap-1.5">
-                                <Swatch hex={firstItem.fill_color_hex} /> {firstItem.fill_color_name}
+                                <Swatch hex={firstItem.fill_color_hex} name={firstItem.fill_color_name} /> {firstItem.fill_color_name}
                               </span>
                             )}
                             {firstItem.personal_text && (
