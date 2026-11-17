@@ -4,9 +4,75 @@ import { useRef, useState } from "react";
 import { createModel, moveRow, updateModel } from "@/app/admin/catalog-actions";
 import type { AdminModel } from "@/lib/admin/catalog";
 import { uploadModelImage } from "@/lib/admin/upload";
+import { agorotToInput, parseShekels } from "@/lib/money";
 import { ErrorLine, MoveButtons, PositionField, Toggle, inputClass, primaryButton, secondaryButton, useRun } from "./catalog-ui";
 
 const ACCEPT = "image/jpeg,image/png,image/webp";
+
+/** Price in shekels (VAT included). Empty = no price: customers cannot order the model. */
+function PriceEditor({ model }: { model: AdminModel }) {
+  const [text, setText] = useState(agorotToInput(model.price_agorot));
+  const { pending, error, run } = useRun();
+  const parsed = parseShekels(text);
+  const dirty = !parsed.ok || parsed.agorot !== model.price_agorot;
+  const id = `price-${model.id}`;
+
+  return (
+    <div data-price-editor className="mt-3">
+      <label htmlFor={id} className="mb-1 block text-sm font-medium text-brown-soft">
+        מחיר בשקלים (כולל מע״מ)
+      </label>
+      <div className="flex gap-2">
+        <div className="relative min-w-0 flex-1">
+          <input
+            id={id}
+            dir="ltr"
+            inputMode="decimal"
+            value={text}
+            placeholder="ללא מחיר"
+            disabled={pending}
+            aria-invalid={!parsed.ok}
+            onChange={(e) => setText(e.target.value)}
+            className={`${inputClass} pe-9 text-right`}
+          />
+          <span aria-hidden="true" className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-brown-soft">
+            ₪
+          </span>
+        </div>
+        {dirty && parsed.ok && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              run(
+                () => updateModel(model.id, { priceAgorot: parsed.agorot }),
+                () => setText(agorotToInput(parsed.agorot)),
+              )
+            }
+            className={primaryButton}
+          >
+            {pending ? "שומר…" : "שמירה"}
+          </button>
+        )}
+      </div>
+      {!parsed.ok && (
+        <p role="alert" className="mt-1 text-sm font-medium text-error">
+          {parsed.error}
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="mt-1 text-sm font-medium text-error">
+          {error}
+        </p>
+      )}
+      {model.price_agorot === null && (
+        <p data-no-price-warning className="mt-2 rounded-lg bg-[#fbf1dc] px-3 py-2 text-sm text-[#7a5600]">
+          אין מחיר: הלקוחות רואים &quot;המחיר יעודכן בקרוב&quot; ולא יכולים להזמין דגם זה.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function ModelCard({ model, position, isFirst, isLast }: { model: AdminModel; position: number; isFirst: boolean; isLast: boolean }) {
   const [name, setName] = useState(model.name);
@@ -68,6 +134,7 @@ function ModelCard({ model, position, isFirst, isLast }: { model: AdminModel; po
           </button>
         )}
       </div>
+      <PriceEditor model={model} />
       {!model.mask_body_url && (
         <p className="mt-2 text-xs text-brown-soft">לדגם זה אין עדיין הדמיית צבע חיה; הלקוח יראה את התמונה המקורית.</p>
       )}
@@ -120,6 +187,7 @@ function AddModelForm() {
   const [preview, setPreview] = useState<string | null>(null);
   const [active, setActive] = useState(true);
   const [position, setPosition] = useState("");
+  const [price, setPrice] = useState("");
   const [uploading, setUploading] = useState(false);
   const { pending, error, setError, run } = useRun();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -137,17 +205,20 @@ function AddModelForm() {
     if (!file) return setError("יש לבחור תמונה.");
     const sortOrder = position.trim() ? Number(position) : null;
     if (sortOrder !== null && (!Number.isInteger(sortOrder) || sortOrder < 1)) return setError("המיקום חייב להיות מספר שלם חיובי.");
+    const parsedPrice = parseShekels(price);
+    if (!parsedPrice.ok) return setError(parsedPrice.error);
     setUploading(true);
     const uploaded = await uploadModelImage(file);
     setUploading(false);
     if (!uploaded.ok) return setError(uploaded.error);
     run(
-      () => createModel(name, uploaded.url, { active, sortOrder }),
+      () => createModel(name, uploaded.url, { active, sortOrder, priceAgorot: parsedPrice.agorot }),
       () => {
         setName("");
         pick(null);
         setActive(true);
         setPosition("");
+        setPrice("");
         if (fileRef.current) fileRef.current.value = "";
       },
     );
@@ -184,6 +255,18 @@ function AddModelForm() {
             onChange={(e) => pick(e.target.files?.[0] ?? null)}
             className="min-h-12 w-full rounded-xl border border-[#dccfbd] bg-white px-3 py-2.5 text-sm file:me-3 file:rounded-lg file:border-0 file:bg-gold-soft file:px-3 file:py-1.5 file:font-semibold"
           />
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-brown-soft">מחיר בשקלים, כולל מע״מ (אפשר להשאיר ריק)</span>
+            <input
+              dir="ltr"
+              inputMode="decimal"
+              value={price}
+              placeholder="לדוגמה 49.90"
+              aria-label="מחיר הדגם החדש"
+              onChange={(e) => setPrice(e.target.value)}
+              className={`${inputClass} text-right`}
+            />
+          </label>
           <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
             <PositionField value={position} onChange={setPosition} />
             <Toggle checked={active} onChange={setActive} onLabel="פעיל מיד" offLabel="יתווסף מוסתר" />
@@ -202,11 +285,13 @@ function AddModelForm() {
 
 export default function ModelsManager({ models }: { models: AdminModel[] }) {
   const activeCount = models.filter((m) => m.active).length;
+  const unpricedCount = models.filter((m) => m.price_agorot === null).length;
   return (
     <div className="space-y-5">
       <AddModelForm />
       <p className="text-sm text-brown-soft">
-        {models.length} דגמים, {activeCount} פעילים. דגם מוסתר לא מוצג ללקוחות. הסדר כאן הוא הסדר באתר (הראשון מימין).
+        {models.length} דגמים, {activeCount} פעילים{unpricedCount > 0 ? `, ${unpricedCount} ללא מחיר` : ""}. דגם מוסתר לא מוצג ללקוחות, ודגם
+        בלי מחיר מוצג אבל אי אפשר להזמין אותו. שינוי מחיר משפיע על הזמנות חדשות בלבד. הסדר כאן הוא הסדר באתר (הראשון מימין).
       </p>
       {models.length === 0 ? (
         <p className="rounded-2xl border border-line bg-white p-8 text-center text-brown-soft">עדיין אין דגמים.</p>

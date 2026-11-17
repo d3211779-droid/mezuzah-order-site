@@ -103,7 +103,13 @@ export default function OrderBuilder() {
     <form noValidate onSubmit={handleSubmit} className="px-4 pb-16">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <div className="space-y-6">
-          <SectionCard id="section-model" step={1} title="בחרו דגם" error={shown("model")}>
+          <SectionCard
+            id="section-model"
+            step={1}
+            title="בחרו דגם"
+            hint="המחיר המוצג הוא המחיר הסופי, כולל מע״מ."
+            error={shown("model")}
+          >
             <ModelPicker
               value={values.modelId}
               onChange={(id) => {

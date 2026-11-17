@@ -25,6 +25,8 @@ export type Model = {
   /** Alpha masks for the live colour preview (silhouette / engraved design area). */
   maskBodyUrl: string | null;
   maskFillUrl: string | null;
+  /** Base price in whole agorot (4990 = 49.90 ILS, VAT included). null = not set: the model cannot be ordered. */
+  priceAgorot: number | null;
 };
 
 export type Color = {

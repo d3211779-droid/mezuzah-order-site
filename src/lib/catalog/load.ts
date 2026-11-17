@@ -1,5 +1,6 @@
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createPublicSupabase } from "@/lib/supabase/server";
+import { asPriceAgorot } from "@/lib/money";
 import { DEFAULT_SETTINGS, SETTING_COLUMNS, parseSettings, type SiteSettings } from "@/lib/settings";
 import type { Catalog, Color, Fill, Model, ModelFit } from "./types";
 
@@ -10,6 +11,8 @@ type ModelRow = {
   fit: unknown;
   mask_body_url: string | null;
   mask_fill_url: string | null;
+  /** Whole agorot, or null/absent = price not set yet. */
+  price_agorot?: number | null;
 };
 type ColorRow = { id: string; name: string; hex: string };
 type FillRow = { id: string; name: string; description: string | null };
@@ -30,7 +33,26 @@ export function mapModel(row: ModelRow): Model {
     fit: parseFit(row.fit),
     maskBodyUrl: row.mask_body_url,
     maskFillUrl: row.mask_fill_url,
+    priceAgorot: asPriceAgorot(row.price_agorot),
   };
+}
+
+const MODEL_COLUMNS_BASE = "id, name, image_url, fit, mask_body_url, mask_fill_url";
+
+/**
+ * Reads the active models with their price. If the price column does not exist yet (the SQL of
+ * supabase/prices.sql was not run), the models are read without it and simply have no price, so
+ * the catalog itself never fails because of it.
+ */
+async function loadModels(supabase: ReturnType<typeof createPublicSupabase>) {
+  const read = (columns: string) =>
+    supabase.from("models").select(columns).eq("active", true).order("sort_order").order("created_at");
+  const withPrice = await read(`${MODEL_COLUMNS_BASE}, price_agorot`);
+  if (withPrice.error?.code === "42703") {
+    console.warn("[loadCatalog] models.price_agorot does not exist yet - run supabase/prices.sql. All models are treated as having no price.");
+    return read(MODEL_COLUMNS_BASE);
+  }
+  return withPrice;
 }
 
 /**
@@ -80,12 +102,7 @@ export async function loadCatalog(): Promise<CatalogResult> {
   try {
     const supabase = createPublicSupabase();
     const [models, colors, fills, settings] = await Promise.all([
-      supabase
-        .from("models")
-        .select("id, name, image_url, fit, mask_body_url, mask_fill_url")
-        .eq("active", true)
-        .order("sort_order")
-        .order("created_at"),
+      loadModels(supabase),
       supabase.from("colors").select("id, name, hex").eq("available", true).order("sort_order").order("created_at"),
       supabase.from("fills").select("id, name, description").eq("available", true).order("sort_order"),
       loadSettings(supabase),
@@ -96,7 +113,7 @@ export async function loadCatalog(): Promise<CatalogResult> {
     if (models.error || colors.error || fills.error) return { ok: false };
 
     const catalog: Catalog = {
-      models: (models.data as ModelRow[]).map(mapModel),
+      models: (models.data as unknown as ModelRow[]).map(mapModel),
       colors: (colors.data as ColorRow[]).map((c): Color => ({ id: c.id, name: c.name, hex: c.hex })),
       fills: (fills.data as FillRow[])
         .filter((f): f is FillRow & { id: Fill["id"] } => f.id === "none" || f.id === "single")

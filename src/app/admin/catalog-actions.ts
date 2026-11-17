@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAdminContext } from "@/lib/admin/session";
 import { HEX_RE, cleanName, parseSortOrder, type ActionResult } from "@/lib/admin/catalog";
 import { UUID_RE } from "@/lib/admin/orders";
+import { asPriceAgorot } from "@/lib/money";
 
 const FAIL: ActionResult = { ok: false, error: "השמירה נכשלה. נסו שוב." };
 const done = (): ActionResult => {
@@ -31,7 +32,7 @@ async function nextSortOrder(supabase: NonNullable<Awaited<ReturnType<typeof adm
 export async function createModel(
   name: string,
   imageUrl: string,
-  options: { active?: boolean; sortOrder?: number | null } = {},
+  options: { active?: boolean; sortOrder?: number | null; priceAgorot?: number | null } = {},
 ): Promise<ActionResult> {
   const clean = cleanName(name);
   if (!clean) return { ok: false, error: "יש להזין שם לדגם." };
@@ -40,15 +41,19 @@ export async function createModel(
   const supabase = await adminClient();
   if (!supabase) return FAIL;
   const sort_order = parseSortOrder(options.sortOrder) ?? (await nextSortOrder(supabase, "models"));
-  const { error } = await supabase
-    .from("models")
-    .insert({ name: clean, image_url: imageUrl, sort_order, active: options.active !== false });
+  const { error } = await supabase.from("models").insert({
+    name: clean,
+    image_url: imageUrl,
+    sort_order,
+    active: options.active !== false,
+    price_agorot: asPriceAgorot(options.priceAgorot),
+  });
   return error ? FAIL : done();
 }
 
 export async function updateModel(
   id: string,
-  patch: { name?: string; active?: boolean; imageUrl?: string },
+  patch: { name?: string; active?: boolean; imageUrl?: string; priceAgorot?: number | null },
 ): Promise<ActionResult> {
   if (!UUID_RE.test(id)) return FAIL;
   const update: Record<string, unknown> = {};
@@ -59,6 +64,12 @@ export async function updateModel(
     update.name = clean;
   }
   if (patch.active !== undefined) update.active = patch.active === true;
+  if (patch.priceAgorot !== undefined) {
+    // null clears the price (the model can no longer be ordered); anything else must be a valid price.
+    const price = patch.priceAgorot === null ? null : asPriceAgorot(patch.priceAgorot);
+    if (patch.priceAgorot !== null && price === null) return { ok: false, error: "המחיר חייב להיות בין 0.01 ל-10,000 ₪." };
+    update.price_agorot = price;
+  }
   if (patch.imageUrl !== undefined) {
     if (!/^https?:\/\//.test(patch.imageUrl)) return FAIL;
     // The colour-preview masks belong to the old photo, so they are cleared with it.

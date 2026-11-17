@@ -41,7 +41,9 @@ export function validateOrder(values: OrderValues, catalog: Catalog): OrderError
   const errors: OrderErrors = {};
   const hasColor = (id: string | null) => catalog.colors.some((c) => c.id === id);
 
-  if (!catalog.models.some((m) => m.id === values.modelId)) errors.model = "יש לבחור דגם";
+  const model = catalog.models.find((m) => m.id === values.modelId);
+  if (!model) errors.model = "יש לבחור דגם";
+  else if (model.priceAgorot === null) errors.model = "הדגם הזה אינו זמין להזמנה כרגע – המחיר יעודכן בקרוב";
 
   if (!values.colorId) errors.color = "יש לבחור צבע";
   else if (!hasColor(values.colorId)) errors.color = "הצבע שנבחר אינו זמין";

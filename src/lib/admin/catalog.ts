@@ -6,6 +6,8 @@ export type AdminModel = {
   active: boolean;
   sort_order: number;
   mask_body_url: string | null;
+  /** Whole agorot, or null = no price yet (the model cannot be ordered). */
+  price_agorot: number | null;
 };
 
 export type AdminColor = {
@@ -24,7 +26,7 @@ export type AdminFill = {
   sort_order: number;
 };
 
-export const MODEL_COLUMNS = "id, name, image_url, active, sort_order, mask_body_url";
+export const MODEL_COLUMNS = "id, name, image_url, active, sort_order, mask_body_url, price_agorot";
 export const COLOR_COLUMNS = "id, name, hex, available, sort_order";
 export const FILL_COLUMNS = "id, name, description, available, sort_order";
 
