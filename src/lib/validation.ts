@@ -10,6 +10,8 @@ export type ItemValues = {
   fillId: string;
   fillColorId: string | null;
   personalText: string;
+  /** null = no parchment. */
+  parchmentId: string | null;
 };
 
 /** The contact details, entered once at checkout (never stored in the browser). */
@@ -19,7 +21,7 @@ export type CustomerValues = {
   note: string;
 };
 
-export type ItemFieldKey = "model" | "color" | "fill" | "personalText";
+export type ItemFieldKey = "model" | "color" | "fill" | "personalText" | "parchment";
 export type CustomerFieldKey = "fullName" | "phone";
 export type FieldKey = ItemFieldKey | CustomerFieldKey;
 export type ItemErrors = Partial<Record<ItemFieldKey, string>>;
@@ -56,6 +58,10 @@ export function validateItem(values: ItemValues, catalog: Catalog): ItemErrors {
     errors.fill = "יש לבחור צבע למילוי";
   }
 
+  if (values.parchmentId !== null && !catalog.parchments.some((p) => p.id === values.parchmentId)) {
+    errors.parchment = "הקלף שנבחר אינו זמין";
+  }
+
   const text = values.personalText.trim();
   if (text) {
     const max = catalog.settings.personalTextMax;
@@ -86,7 +92,7 @@ export function validateCustomer(values: Pick<CustomerValues, "fullName" | "phon
   return errors;
 }
 
-export const ITEM_FIELD_ORDER: ItemFieldKey[] = ["model", "color", "fill", "personalText"];
+export const ITEM_FIELD_ORDER: ItemFieldKey[] = ["model", "color", "fill", "personalText", "parchment"];
 export const CUSTOMER_FIELD_ORDER: CustomerFieldKey[] = ["fullName", "phone"];
 
 /** DOM id to focus for the first invalid field. */
@@ -95,6 +101,7 @@ export const FIELD_DOM_ID: Record<FieldKey, string> = {
   color: "section-color",
   fill: "section-fill",
   personalText: "personalText",
+  parchment: "section-parchment",
   fullName: "fullName",
   phone: "phone",
 };

@@ -13,6 +13,7 @@ const LINKS: NavLink[] = [
   { href: "/admin/models", label: "דגמים", match: (p) => p.startsWith("/admin/models") },
   { href: "/admin/colors", label: "צבעים", match: (p) => p.startsWith("/admin/colors") },
   { href: "/admin/fills", label: "מילויים", match: (p) => p.startsWith("/admin/fills") },
+  { href: "/admin/parchments", label: "קלפים", match: (p) => p.startsWith("/admin/parchments") },
   { href: "/admin/settings", label: "הגדרות", match: (p) => p.startsWith("/admin/settings") },
 ];
 

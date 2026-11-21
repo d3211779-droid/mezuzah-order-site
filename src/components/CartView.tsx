@@ -6,7 +6,7 @@ import { PROBLEM_TEXT, resolveCart, type ResolvedLine } from "@/lib/cart/resolve
 import { MAX_LINES, MAX_QUANTITY } from "@/lib/cart/store";
 import { useCatalog } from "@/lib/catalog/context";
 import { formatPrice } from "@/lib/money";
-import { ItemDetails, ItemThumb } from "./CartItemParts";
+import { ItemDetails, ItemThumb, UnitPrice } from "./CartItemParts";
 
 const stepButton =
   "flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-white text-xl font-bold transition hover:border-gold disabled:cursor-not-allowed disabled:opacity-40";
@@ -22,11 +22,9 @@ function CartItemCard({ item }: { item: ResolvedLine }) {
         <ItemThumb item={item} />
         <div className="min-w-0 flex-1">
           <ItemDetails item={item} />
-          {item.unitPriceAgorot !== null && (
-            <p className="mt-2 text-sm text-brown-soft">
-              מחיר ליחידה: <strong data-unit-price className="text-brown">{formatPrice(item.unitPriceAgorot)}</strong>
-            </p>
-          )}
+          <div className="mt-2">
+            <UnitPrice item={item} />
+          </div>
         </div>
       </div>
 

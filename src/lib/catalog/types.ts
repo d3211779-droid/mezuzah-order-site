@@ -43,10 +43,27 @@ export type Fill = {
   description: string | null;
 };
 
+/**
+ * An optional add-on sold together with a mezuzah (managed in the admin panel, table `parchments`).
+ * The catalog only contains parchments that are available AND have a price.
+ */
+export type Parchment = {
+  id: string;
+  /** Shown to customers exactly as the admin typed it. */
+  name: string;
+  description: string | null;
+  note: string | null;
+  sizeCm: number;
+  /** Surcharge per mezuzah in whole agorot (VAT included). */
+  priceAgorot: number;
+};
+
 export type Catalog = {
   models: Model[];
   colors: Color[];
   fills: Fill[];
+  /** Empty = the parchment option is not offered at all. */
+  parchments: Parchment[];
   /** Texts and limits from the admin panel (never missing: falls back to the defaults). */
   settings: SiteSettings;
 };

@@ -70,10 +70,36 @@ function ItemCard({ item, index }: { item: OrderItemRow; index: number }) {
               </Row>
             )}
             <Row label="טקסט אישי">{item.personal_text ?? "—"}</Row>
+            <Row label="קלף">
+              {item.has_parchment ? (
+                <span data-item-parchment>
+                  {item.parchment_name}
+                  {item.parchment_size_cm !== null && <span className="text-sm font-normal text-brown-soft"> · {item.parchment_size_cm} ס״מ</span>}
+                </span>
+              ) : (
+                "ללא קלף"
+              )}
+            </Row>
             <Row label="כמות">
               <span data-item-quantity>{item.quantity}</span>
             </Row>
-            <Row label="מחיר ליחידה">{money(item.unit_price_agorot)}</Row>
+            {item.has_parchment && item.unit_price_agorot !== null && item.parchment_price_agorot !== null ? (
+              <>
+                <Row label="מחיר המזוזה">
+                  <span data-item-model-price>{money(item.unit_price_agorot - item.parchment_price_agorot)}</span>
+                </Row>
+                <Row label="תוספת קלף">
+                  <span data-item-parchment-price>+{money(item.parchment_price_agorot)}</span>
+                </Row>
+                <Row label="מחיר כולל ליחידה">
+                  <span data-item-unit-price>{money(item.unit_price_agorot)}</span>
+                </Row>
+              </>
+            ) : (
+              <Row label="מחיר ליחידה">
+                <span data-item-unit-price>{money(item.unit_price_agorot)}</span>
+              </Row>
+            )}
             <Row label="סה״כ לפריט">
               <strong data-item-total>{money(item.line_total_agorot)}</strong>
             </Row>

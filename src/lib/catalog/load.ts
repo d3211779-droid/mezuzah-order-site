@@ -2,7 +2,7 @@ import { getSupabaseEnv } from "@/lib/supabase/env";
 import { createPublicSupabase } from "@/lib/supabase/server";
 import { asPriceAgorot } from "@/lib/money";
 import { DEFAULT_SETTINGS, SETTING_COLUMNS, parseSettings, type SiteSettings } from "@/lib/settings";
-import type { Catalog, Color, Fill, Model, ModelFit } from "./types";
+import type { Catalog, Color, Fill, Model, ModelFit, Parchment } from "./types";
 
 type ModelRow = {
   id: string;
@@ -16,6 +16,14 @@ type ModelRow = {
 };
 type ColorRow = { id: string; name: string; hex: string };
 type FillRow = { id: string; name: string; description: string | null };
+type ParchmentRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  note: string | null;
+  size_cm: number;
+  price_agorot: number | null;
+};
 
 /** Accepts the jsonb value only when it really looks like a ModelFit. */
 export function parseFit(value: unknown): ModelFit | null {
@@ -75,6 +83,36 @@ async function loadSettings(supabase: ReturnType<typeof createPublicSupabase>): 
   }
 }
 
+/**
+ * Reads the available parchments that have a price. Like the settings, this can never break the
+ * catalog: if the table does not exist yet (supabase/parchments.sql not run) or the request fails,
+ * there are simply no parchments and the customer does not see the option at all.
+ */
+async function loadParchments(supabase: ReturnType<typeof createPublicSupabase>): Promise<Parchment[]> {
+  try {
+    const { data, error } = await supabase
+      .from("parchments")
+      .select("id, name, description, note, size_cm, price_agorot")
+      .eq("available", true)
+      .order("sort_order")
+      .order("created_at");
+    if (error) {
+      console.warn(
+        `[loadCatalog] parchments unavailable, the parchment option is hidden | code=${error.code ?? "-"} | message=${error.message ?? "-"}`,
+      );
+      return [];
+    }
+    return (data as unknown as ParchmentRow[]).flatMap((row): Parchment[] => {
+      const price = asPriceAgorot(row.price_agorot);
+      if (price === null || !Number.isInteger(row.size_cm)) return [];
+      return [{ id: row.id, name: row.name, description: row.description, note: row.note, sizeCm: row.size_cm, priceAgorot: price }];
+    });
+  } catch (err) {
+    console.warn("[loadCatalog] parchments failed, the parchment option is hidden:", err instanceof Error ? err.message : err);
+    return [];
+  }
+}
+
 export type CatalogResult = { ok: true; catalog: Catalog } | { ok: false };
 
 /** Logs a PostgREST error with everything useful for diagnosis. Never prints keys. */
@@ -101,11 +139,12 @@ export async function loadCatalog(): Promise<CatalogResult> {
   }
   try {
     const supabase = createPublicSupabase();
-    const [models, colors, fills, settings] = await Promise.all([
+    const [models, colors, fills, settings, parchments] = await Promise.all([
       loadModels(supabase),
       supabase.from("colors").select("id, name, hex").eq("available", true).order("sort_order").order("created_at"),
       supabase.from("fills").select("id, name, description").eq("available", true).order("sort_order"),
       loadSettings(supabase),
+      loadParchments(supabase),
     ]);
     if (models.error) logQueryError("models", models.error);
     if (colors.error) logQueryError("colors", colors.error);
@@ -118,6 +157,7 @@ export async function loadCatalog(): Promise<CatalogResult> {
       fills: (fills.data as FillRow[])
         .filter((f): f is FillRow & { id: Fill["id"] } => f.id === "none" || f.id === "single")
         .map((f): Fill => ({ id: f.id, name: f.name, description: f.description })),
+      parchments,
       settings,
     };
     // Without at least one model, colour and fill nobody can order: treat as unavailable.

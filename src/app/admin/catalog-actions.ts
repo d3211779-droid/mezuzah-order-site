@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminContext } from "@/lib/admin/session";
-import { HEX_RE, cleanName, parseSortOrder, type ActionResult } from "@/lib/admin/catalog";
+import { HEX_RE, cleanName, cleanOptionalText, parseSizeCm, parseSortOrder, type ActionResult } from "@/lib/admin/catalog";
 import { UUID_RE } from "@/lib/admin/orders";
 import { asPriceAgorot } from "@/lib/money";
 
@@ -12,8 +12,8 @@ const done = (): ActionResult => {
   return { ok: true };
 };
 
-type SortableTable = "models" | "colors";
-const isSortableTable = (t: string): t is SortableTable => t === "models" || t === "colors";
+type SortableTable = "models" | "colors" | "parchments";
+const isSortableTable = (t: string): t is SortableTable => t === "models" || t === "colors" || t === "parchments";
 
 /** Only a real admin gets a client; anyone else is refused before touching the database. */
 async function adminClient() {
@@ -142,6 +142,108 @@ export async function updateFill(id: string, available: boolean): Promise<Action
     if (!others.length) return { ok: false, error: "חייב להישאר לפחות סוג מילוי אחד זמין." };
   }
   const { data, error } = await supabase.from("fills").update({ available }).eq("id", id).select("id");
+  return error || !data?.length ? FAIL : done();
+}
+
+// ---------------------------------------------------------------- parchments
+
+const PRICE_ERROR = "המחיר חייב להיות בין 0.01 ל-10,000 ₪.";
+const NEEDS_PRICE = "אי אפשר להפעיל קלף בלי מחיר. הזינו מחיר ושמרו.";
+
+export type ParchmentInput = {
+  name: string;
+  description?: string | null;
+  note?: string | null;
+  sizeCm: number;
+  priceAgorot?: number | null;
+  available?: boolean;
+  sortOrder?: number | null;
+};
+
+export async function createParchment(input: ParchmentInput): Promise<ActionResult> {
+  const name = cleanName(input.name);
+  if (!name) return { ok: false, error: "יש להזין שם לקלף." };
+  const description = cleanOptionalText(input.description, 200);
+  if (description === undefined) return { ok: false, error: "התיאור ארוך מדי (עד 200 תווים)." };
+  const note = cleanOptionalText(input.note, 500);
+  if (note === undefined) return { ok: false, error: "ההערה ארוכה מדי (עד 500 תווים)." };
+  const size = parseSizeCm(input.sizeCm);
+  if (size === null) return { ok: false, error: "הגודל חייב להיות מספר שלם בין 1 ל-100 ס״מ." };
+  const price = input.priceAgorot === null || input.priceAgorot === undefined ? null : asPriceAgorot(input.priceAgorot);
+  if (input.priceAgorot !== null && input.priceAgorot !== undefined && price === null) return { ok: false, error: PRICE_ERROR };
+  const available = input.available === true;
+  if (available && price === null) return { ok: false, error: NEEDS_PRICE };
+
+  const supabase = await adminClient();
+  if (!supabase) return FAIL;
+  const sort_order = parseSortOrder(input.sortOrder) ?? (await nextSortOrder(supabase, "parchments"));
+  const { error } = await supabase
+    .from("parchments")
+    .insert({ name, description, note, size_cm: size, price_agorot: price, available, sort_order });
+  return error ? FAIL : done();
+}
+
+export async function updateParchment(
+  id: string,
+  patch: {
+    name?: string;
+    description?: string | null;
+    note?: string | null;
+    sizeCm?: number;
+    priceAgorot?: number | null;
+    available?: boolean;
+  },
+): Promise<ActionResult> {
+  if (!UUID_RE.test(id)) return FAIL;
+  const update: Record<string, unknown> = {};
+
+  if (patch.name !== undefined) {
+    const name = cleanName(patch.name);
+    if (!name) return { ok: false, error: "השם לא יכול להיות ריק." };
+    update.name = name;
+  }
+  if (patch.description !== undefined) {
+    const description = cleanOptionalText(patch.description, 200);
+    if (description === undefined) return { ok: false, error: "התיאור ארוך מדי (עד 200 תווים)." };
+    update.description = description;
+  }
+  if (patch.note !== undefined) {
+    const note = cleanOptionalText(patch.note, 500);
+    if (note === undefined) return { ok: false, error: "ההערה ארוכה מדי (עד 500 תווים)." };
+    update.note = note;
+  }
+  if (patch.sizeCm !== undefined) {
+    const size = parseSizeCm(patch.sizeCm);
+    if (size === null) return { ok: false, error: "הגודל חייב להיות מספר שלם בין 1 ל-100 ס״מ." };
+    update.size_cm = size;
+  }
+  if (patch.priceAgorot !== undefined) {
+    const price = patch.priceAgorot === null ? null : asPriceAgorot(patch.priceAgorot);
+    if (patch.priceAgorot !== null && price === null) return { ok: false, error: PRICE_ERROR };
+    update.price_agorot = price;
+  }
+  if (patch.available !== undefined) update.available = patch.available === true;
+  if (!Object.keys(update).length) return FAIL;
+
+  const supabase = await adminClient();
+  if (!supabase) return FAIL;
+
+  // A parchment is only ever available with a price (the database enforces it too): check the result first
+  // so the admin gets a clear message instead of a generic failure.
+  if ("available" in update || "price_agorot" in update) {
+    const { data: current } = await supabase.from("parchments").select("available, price_agorot").eq("id", id).maybeSingle();
+    if (!current) return FAIL;
+    const nextAvailable = "available" in update ? update.available === true : current.available === true;
+    const nextPrice = "price_agorot" in update ? (update.price_agorot as number | null) : (current.price_agorot as number | null);
+    if (nextAvailable && nextPrice === null) {
+      return {
+        ok: false,
+        error: "available" in update ? NEEDS_PRICE : "קלף זמין חייב מחיר. השביתו אותו קודם, או הזינו מחיר.",
+      };
+    }
+  }
+
+  const { data, error } = await supabase.from("parchments").update(update).eq("id", id).select("id");
   return error || !data?.length ? FAIL : done();
 }
 

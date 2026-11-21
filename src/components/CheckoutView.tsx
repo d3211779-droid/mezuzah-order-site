@@ -98,6 +98,7 @@ export default function CheckoutView() {
       fillType: i.line.fillType,
       fillColorId: i.line.fillColorId,
       personalText: i.line.personalText,
+      parchmentId: i.line.parchmentId,
       quantity: i.line.quantity,
     }));
     const signature = JSON.stringify([sendItems, values.fullName.trim(), values.phone.trim(), values.note.trim(), totalAgorot]);
@@ -240,6 +241,11 @@ export default function CheckoutView() {
                   {item.line.fillType === "single" && item.fillColor ? ` · מילוי ${item.fillColor.name}` : ""}
                   {item.line.personalText ? ` · ${item.line.personalText}` : ""}
                 </p>
+                {item.parchment && (
+                  <p data-checkout-parchment className="text-xs text-[#d9c39a]">
+                    קלף: {item.parchment.name} (+{formatPrice(item.parchment.priceAgorot)})
+                  </p>
+                )}
               </div>
               <div className="shrink-0 text-left text-sm">
                 <p className="text-xs text-[#d9c39a]">× {item.line.quantity}</p>

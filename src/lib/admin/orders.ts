@@ -25,8 +25,15 @@ export type OrderItemRow = {
   fill_color_hex: string | null;
   personal_text: string | null;
   quantity: number;
+  /** Per unit: mezuzah + parchment (when there is one). */
   unit_price_agorot: number | null;
   line_total_agorot: number | null;
+  /** Snapshot of the parchment add-on. All empty/false on orders without one (and before parchments existed). */
+  has_parchment: boolean;
+  parchment_name: string | null;
+  parchment_size_cm: number | null;
+  /** Parchment surcharge per unit, already included in unit_price_agorot. */
+  parchment_price_agorot: number | null;
 };
 
 export type OrderRow = {
@@ -45,9 +52,16 @@ export type OrderRow = {
 
 const ITEM_COLUMNS =
   "line_number, model_name, model_image_url, body_color_name, body_color_hex, fill_type, fill_color_name, fill_color_hex, personal_text, quantity, unit_price_agorot, line_total_agorot";
+const PARCHMENT_ITEM_COLUMNS = "has_parchment, parchment_name, parchment_size_cm, parchment_price_agorot";
 
-/** The columns the admin screens read: the order plus all of its items. */
-export const ORDER_COLUMNS = `id, order_number, created_at, customer_name, phone, customer_note, internal_note, status, total_amount_agorot, order_items(${ITEM_COLUMNS})`;
+const orderColumns = (itemColumns: string) =>
+  `id, order_number, created_at, customer_name, phone, customer_note, internal_note, status, total_amount_agorot, order_items(${itemColumns})`;
+
+/** The columns the admin screens read: the order plus all of its items (with the parchment snapshot). */
+export const ORDER_COLUMNS = orderColumns(`${ITEM_COLUMNS}, ${PARCHMENT_ITEM_COLUMNS}`);
+
+/** Used only if supabase/parchments.sql has not been run yet: items without the parchment columns. */
+const ORDER_COLUMNS_NO_PARCHMENT = orderColumns(ITEM_COLUMNS);
 
 /** Used only if supabase/cart-orders.sql has not been run yet: the single product stored on the order itself. */
 const LEGACY_ORDER_COLUMNS =
@@ -57,7 +71,15 @@ const LEGACY_ORDER_COLUMNS =
 function normalizeOrder(raw: Record<string, unknown>): OrderRow {
   const base = raw as unknown as OrderRow & { order_items?: OrderItemRow[] } & Partial<OrderItemRow>;
   const items: OrderItemRow[] = Array.isArray(base.order_items)
-    ? [...base.order_items].sort((a, b) => a.line_number - b.line_number)
+    ? base.order_items
+        .map((item) => ({
+          ...item,
+          has_parchment: item.has_parchment === true,
+          parchment_name: item.parchment_name ?? null,
+          parchment_size_cm: item.parchment_size_cm ?? null,
+          parchment_price_agorot: item.parchment_price_agorot ?? null,
+        }))
+        .sort((a, b) => a.line_number - b.line_number)
     : [
         {
           line_number: 1,
@@ -72,6 +94,10 @@ function normalizeOrder(raw: Record<string, unknown>): OrderRow {
           quantity: 1,
           unit_price_agorot: null,
           line_total_agorot: null,
+          has_parchment: false,
+          parchment_name: null,
+          parchment_size_cm: null,
+          parchment_price_agorot: null,
         },
       ];
   return {
@@ -103,6 +129,11 @@ export async function fetchOrders(
 ): Promise<{ orders: OrderRow[]; error: QueryResult["error"] }> {
   let result = await run(ORDER_COLUMNS);
   if (result.error && NEW_SCHEMA_MISSING.has(result.error.code ?? "")) {
+    // parchments.sql not run yet? Try the items without the parchment columns first.
+    console.warn(`[admin orders] parchment columns not available (${result.error.code}) - run supabase/parchments.sql.`);
+    result = await run(ORDER_COLUMNS_NO_PARCHMENT);
+  }
+  if (result.error && NEW_SCHEMA_MISSING.has(result.error.code ?? "")) {
     console.warn(`[admin orders] order_items not available (${result.error.code}) - using the legacy columns. Run supabase/cart-orders.sql.`);
     result = await run(LEGACY_ORDER_COLUMNS);
   }
@@ -123,6 +154,9 @@ export const fillLabel = (item: Pick<OrderItemRow, "fill_type">) => (item.fill_t
 
 /** Number of units in an order ("3 פריטים"). */
 export const unitCount = (o: Pick<OrderRow, "items">) => o.items.reduce((sum, i) => sum + i.quantity, 0);
+/** True when at least one item of the order includes a parchment. */
+export const hasParchment = (o: Pick<OrderRow, "items">) => o.items.some((i) => i.has_parchment);
+
 export const unitsLabel = (n: number) => (n === 1 ? "פריט אחד" : `${n} פריטים`);
 
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

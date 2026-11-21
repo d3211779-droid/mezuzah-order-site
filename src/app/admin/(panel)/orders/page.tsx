@@ -9,6 +9,7 @@ import {
   fetchOrders,
   fillLabel,
   formatOrderDate,
+  hasParchment,
   isOrderStatus,
   statusInfo,
   unitCount,
@@ -187,6 +188,12 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                                 טקסט: <strong className="text-brown">{firstItem.personal_text}</strong>
                               </>
                             )}
+                            {firstItem.has_parchment && (
+                              <>
+                                <span className="mx-2 text-line">|</span>
+                                קלף: <strong data-order-parchment className="text-brown">{firstItem.parchment_name}</strong>
+                              </>
+                            )}
                           </p>
                         </>
                       )}
@@ -195,6 +202,14 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                           {unitsLabel(units)}
                           {more > 0 && <span className="text-brown-soft"> · {o.items.length} דגמים</span>}
                         </span>
+                        {hasParchment(o) && (
+                          <span
+                            data-order-has-parchment
+                            className="rounded-full border border-gold-soft bg-[#fbf6ed] px-3 py-0.5 font-medium text-gold-deep"
+                          >
+                            כולל קלף
+                          </span>
+                        )}
                         <span>
                           סה״כ:{" "}
                           <strong data-order-total className="text-base">

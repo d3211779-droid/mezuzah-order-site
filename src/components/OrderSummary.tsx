@@ -20,13 +20,15 @@ function ColorValue({ id }: { id: string | null }) {
 
 /** Summary of the mezuzah being configured (the contact details are entered later, at checkout). */
 export default function OrderSummary({ values }: { values: ItemValues }) {
-  const { getModel, getFill, settings } = useCatalog();
+  const { getModel, getFill, getParchment, settings } = useCatalog();
   const personalText = values.personalText.trim();
 
   const model = getModel(values.modelId);
   const fill = getFill(values.fillId);
   const fillKind = fill?.id ?? "none";
+  const parchment = getParchment(values.parchmentId);
   const price = model?.priceAgorot ?? null;
+  const total = price === null ? null : price + (parchment?.priceAgorot ?? 0);
 
   const rows: [string, ReactNode][] = [
     ["דגם", model?.name ?? EMPTY],
@@ -36,13 +38,24 @@ export default function OrderSummary({ values }: { values: ItemValues }) {
       ? ([["צבע מילוי", <ColorValue key="fill" id={values.fillColorId} />]] as [string, ReactNode][])
       : []),
     ...(personalText ? ([["טקסט אישי", personalText]] as [string, ReactNode][]) : []),
+    ...(parchment
+      ? ([
+          ["קלף", <span key="parchment" data-summary-parchment>{parchment.name}</span>],
+          ...(price === null
+            ? []
+            : [
+                ["מחיר המזוזה", formatPrice(price)],
+                ["תוספת קלף", <span key="parchment-price" data-summary-parchment-price>+{formatPrice(parchment.priceAgorot)}</span>],
+              ]),
+        ] as [string, ReactNode][])
+      : []),
     [
-      "מחיר",
-      price === null ? (
+      parchment ? "מחיר כולל" : "מחיר",
+      total === null ? (
         EMPTY
       ) : (
         <span data-summary-price>
-          {formatPrice(price)} <span className="text-xs font-normal text-[#d9c39a]">כולל מע״מ</span>
+          {formatPrice(total)} <span className="text-xs font-normal text-[#d9c39a]">כולל מע״מ</span>
         </span>
       ),
     ],

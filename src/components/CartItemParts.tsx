@@ -1,4 +1,5 @@
 import type { ResolvedLine } from "@/lib/cart/resolve";
+import { formatPrice } from "@/lib/money";
 import ModelImage from "./ModelImage";
 import Swatch from "./Swatch";
 
@@ -22,6 +23,37 @@ export function ItemThumb({ item, className = "h-24 w-24" }: { item: ResolvedLin
       className={`${className} shrink-0`}
       sizes="112px"
     />
+  );
+}
+
+/**
+ * Price of ONE unit. Without a parchment: just "מחיר ליחידה". With one, the three numbers are spelled
+ * out: the mezuzah, the parchment surcharge and the total per unit.
+ */
+export function UnitPrice({ item }: { item: ResolvedLine }) {
+  if (item.unitPriceAgorot === null) return null;
+  if (item.parchmentPriceAgorot === null || item.modelPriceAgorot === null) {
+    return (
+      <p className="text-sm text-brown-soft">
+        מחיר ליחידה: <strong data-unit-price className="text-brown">{formatPrice(item.unitPriceAgorot)}</strong>
+      </p>
+    );
+  }
+  return (
+    <dl data-unit-breakdown className="space-y-0.5 text-sm text-brown-soft">
+      <div className="flex justify-between gap-3">
+        <dt>מחיר המזוזה</dt>
+        <dd data-model-price className="text-brown">{formatPrice(item.modelPriceAgorot)}</dd>
+      </div>
+      <div className="flex justify-between gap-3">
+        <dt>תוספת קלף</dt>
+        <dd data-parchment-price className="text-brown">+{formatPrice(item.parchmentPriceAgorot)}</dd>
+      </div>
+      <div className="flex justify-between gap-3 border-t border-line pt-0.5">
+        <dt className="font-semibold">מחיר כולל ליחידה</dt>
+        <dd data-unit-price className="font-bold text-brown">{formatPrice(item.unitPriceAgorot)}</dd>
+      </div>
+    </dl>
   );
 }
 
@@ -68,6 +100,20 @@ export function ItemDetails({ item }: { item: ResolvedLine }) {
           <div className="flex flex-wrap items-center gap-x-1.5">
             <dt>כיתוב אישי:</dt>
             <dd className="font-bold text-brown">{line.personalText}</dd>
+          </div>
+        )}
+        {line.parchmentId && (
+          <div data-item-parchment className="flex flex-wrap items-center gap-x-1.5">
+            <dt>קלף:</dt>
+            <dd className="text-brown">
+              {item.parchment ? (
+                <>
+                  {item.parchment.name} <span className="text-brown-soft">(+{formatPrice(item.parchment.priceAgorot)})</span>
+                </>
+              ) : (
+                "אינו זמין"
+              )}
+            </dd>
           </div>
         )}
       </dl>

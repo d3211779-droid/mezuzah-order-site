@@ -1,12 +1,13 @@
 "use client";
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import type { Catalog, Color, Fill, Model } from "./types";
+import type { Catalog, Color, Fill, Model, Parchment } from "./types";
 
 type CatalogApi = Catalog & {
   getModel: (id: string | null) => Model | null;
   getColor: (id: string | null) => Color | null;
   getFill: (id: string | null) => Fill | null;
+  getParchment: (id: string | null) => Parchment | null;
 };
 
 const CatalogContext = createContext<CatalogApi | null>(null);
@@ -19,6 +20,7 @@ export function CatalogProvider({ catalog, children }: { catalog: Catalog; child
       getModel: (id) => catalog.models.find((m) => m.id === id) ?? null,
       getColor: (id) => catalog.colors.find((c) => c.id === id) ?? null,
       getFill: (id) => catalog.fills.find((f) => f.id === id) ?? null,
+      getParchment: (id) => catalog.parchments.find((p) => p.id === id) ?? null,
     }),
     [catalog],
   );

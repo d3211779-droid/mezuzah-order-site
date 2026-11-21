@@ -16,6 +16,7 @@ import FillPicker from "./FillPicker";
 import GoodToKnow from "./GoodToKnow";
 import ModelPicker from "./ModelPicker";
 import OrderSummary from "./OrderSummary";
+import ParchmentPicker from "./ParchmentPicker";
 import SectionCard from "./SectionCard";
 import SelectedModelPreview from "./SelectedModelPreview";
 
@@ -25,6 +26,7 @@ const initialValues = (defaultFillId: string): ItemValues => ({
   fillId: defaultFillId,
   fillColorId: null,
   personalText: "",
+  parchmentId: null,
 });
 
 const FIELD_DOM_ID: Record<ItemFieldKey, string> = {
@@ -32,6 +34,7 @@ const FIELD_DOM_ID: Record<ItemFieldKey, string> = {
   color: "section-color",
   fill: "section-fill",
   personalText: "personalText",
+  parchment: "section-parchment",
 };
 
 const inputClass = (invalid: boolean) =>
@@ -119,6 +122,7 @@ export default function OrderBuilder() {
       fillType: values.fillId === "single" ? "single" : "none",
       fillColorId: values.fillId === "single" ? values.fillColorId : null,
       personalText: values.personalText,
+      parchmentId: values.parchmentId,
     });
     if (!result.ok) {
       setAddError(
@@ -211,6 +215,18 @@ export default function OrderBuilder() {
             </div>
             <p className="mt-3 text-sm text-brown-soft">{personalTextSizeNote}</p>
           </SectionCard>
+
+          {catalog.parchments.length > 0 && (
+            <SectionCard
+              id="section-parchment"
+              step={5}
+              title="האם תרצו להוסיף קלף למזוזה?"
+              hint="הקלף הוא תוספת בתשלום, והמחיר שלו מתווסף למחיר המזוזה."
+              error={shown("parchment")}
+            >
+              <ParchmentPicker value={values.parchmentId} onChange={(id) => update("parchmentId", id)} />
+            </SectionCard>
+          )}
 
           <GoodToKnow />
         </div>

@@ -22,13 +22,16 @@ export type CartLine = {
   fillType: "none" | "single";
   fillColorId: string | null;
   personalText: string;
+  /** null = no parchment. Only the id is stored; name and price always come from the catalog. */
+  parchmentId: string | null;
   quantity: number;
 };
 
 export type NewCartLine = Omit<CartLine, "key" | "quantity">;
 
-export const lineKey = (l: Pick<CartLine, "modelId" | "bodyColorId" | "fillType" | "fillColorId" | "personalText">) =>
-  [l.modelId, l.bodyColorId, l.fillType, l.fillColorId ?? "", l.personalText.trim()].join("|");
+export const lineKey = (
+  l: Pick<CartLine, "modelId" | "bodyColorId" | "fillType" | "fillColorId" | "personalText" | "parchmentId">,
+) => [l.modelId, l.bodyColorId, l.fillType, l.fillColorId ?? "", l.personalText.trim(), l.parchmentId ?? ""].join("|");
 
 const clampQuantity = (n: number) => Math.min(MAX_QUANTITY, Math.max(1, Math.floor(n)));
 
@@ -62,6 +65,8 @@ export function parseCart(raw: string | null): CartLine[] {
         fillType: l.fillType,
         fillColorId: l.fillType === "single" ? (l.fillColorId as string | null) : null,
         personalText: l.personalText.slice(0, 30),
+        // carts saved before parchments existed have no such field = no parchment
+        parchmentId: typeof l.parchmentId === "string" && l.parchmentId ? l.parchmentId : null,
         quantity: clampQuantity(l.quantity),
       };
       line.key = lineKey(line);

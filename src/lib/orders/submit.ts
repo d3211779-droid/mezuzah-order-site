@@ -10,6 +10,8 @@ export type SubmitItem = {
   fillType: "none" | "single";
   fillColorId: string | null;
   personalText: string;
+  /** null = no parchment. Only the id: the database reads the parchment price itself. */
+  parchmentId: string | null;
   quantity: number;
 };
 
@@ -29,6 +31,7 @@ const UNAVAILABLE_CODES = [
   "invalid_color",
   "invalid_fill",
   "invalid_fill_color",
+  "invalid_parchment",
   "price_not_set",
   "invalid_items",
   "invalid_quantity",
@@ -54,6 +57,7 @@ export async function submitCartOrder(
         fill_type: i.fillType,
         fill_color_id: i.fillType === "single" ? i.fillColorId : null,
         personal_text: i.personalText.trim() || null,
+        parchment_id: i.parchmentId,
         quantity: i.quantity,
       })),
       p_customer_name: customer.fullName.trim(),
