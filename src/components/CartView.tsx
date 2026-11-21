@@ -100,7 +100,7 @@ export default function CartView() {
         <h2 className="text-xl font-bold">הסל שלכם ריק</h2>
         <p className="mt-2 text-brown-soft">בחרו דגם, צבע ומילוי והוסיפו את המזוזה לסל.</p>
         <Link
-          href="/"
+          href="/design"
           className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-gold px-8 font-bold text-white transition hover:bg-[#9c7a3e]"
         >
           לבחירת מזוזה
@@ -120,7 +120,7 @@ export default function CartView() {
             <CartItemCard key={item.line.key} item={item} />
           ))}
         </ul>
-        <Link href="/" className="mt-4 inline-flex min-h-11 items-center font-semibold text-gold-deep">
+        <Link href="/design" className="mt-4 inline-flex min-h-11 items-center font-semibold text-gold-deep">
           + הוספת מזוזה נוספת
         </Link>
         <p className="text-xs text-brown-soft">

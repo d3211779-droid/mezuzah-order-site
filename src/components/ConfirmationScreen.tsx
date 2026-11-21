@@ -77,7 +77,7 @@ export default function ConfirmationScreen({ customerName, orderNumber, totalAgo
         </div>
 
         <Link
-          href="/"
+          href="/design"
           className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-2xl border-2 border-gold px-6 font-semibold text-gold-deep transition hover:bg-[#fbf6ed] sm:w-auto"
         >
           הזמנה חדשה

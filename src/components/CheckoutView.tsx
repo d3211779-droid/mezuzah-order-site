@@ -61,7 +61,7 @@ export default function CheckoutView() {
         <h2 className="text-xl font-bold">הסל שלכם ריק</h2>
         <p className="mt-2 text-brown-soft">כדי להזמין, הוסיפו קודם מזוזה לסל.</p>
         <Link
-          href="/"
+          href="/design"
           className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-gold px-8 font-bold text-white transition hover:bg-[#9c7a3e]"
         >
           לבחירת מזוזה

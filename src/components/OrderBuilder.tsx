@@ -78,17 +78,26 @@ function AddedToast({ onClose }: { onClose: () => void }) {
   );
 }
 
-export default function OrderBuilder() {
+export default function OrderBuilder({ initialModelId = null }: { initialModelId?: string | null }) {
   const catalog = useCatalog();
   const cart = useCart();
   const { personalTextMax, personalTextSizeNote } = catalog.settings;
   // "No fill" is the default; if it is switched off in the admin panel, the first available fill is used.
   const defaultFillId = (catalog.fills.find((f) => f.id === "none") ?? catalog.fills[0]).id;
-  const [values, setValues] = useState<ItemValues>(() => initialValues(defaultFillId));
+  // A model chosen on the home page starts selected - but only if it exists and has a price.
+  const preselected = catalog.models.find((m) => m.id === initialModelId && m.priceAgorot !== null)?.id ?? null;
+  const [values, setValues] = useState<ItemValues>(() => ({ ...initialValues(defaultFillId), modelId: preselected }));
   const [touched, setTouched] = useState<Partial<Record<ItemFieldKey, boolean>>>({});
   const [attempted, setAttempted] = useState(false);
   const [addedToast, setAddedToast] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+
+  // Coming from "לבחירת הדגם": the model is done, so take the customer straight to the colour step.
+  useEffect(() => {
+    if (preselected) document.getElementById("section-color")?.scrollIntoView({ block: "start" });
+    // only on arrival
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const errors = validateItem(values, catalog);
   const shown = (key: ItemFieldKey) =>

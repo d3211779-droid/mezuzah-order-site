@@ -19,11 +19,11 @@ export async function CatalogGate({ children }: { children: ReactNode }) {
   return <CatalogProvider catalog={result.catalog}>{children}</CatalogProvider>;
 }
 
-/** The order screen with the live catalog. */
-export default function CatalogSection() {
+/** The order screen with the live catalog. `initialModelId` comes from the home page's model buttons. */
+export default function CatalogSection({ initialModelId = null }: { initialModelId?: string | null }) {
   return (
     <CatalogGate>
-      <OrderBuilder />
+      <OrderBuilder initialModelId={initialModelId} />
     </CatalogGate>
   );
 }
