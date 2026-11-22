@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { connection } from "next/server";
@@ -10,6 +11,16 @@ const ctaClass =
   "inline-flex min-h-14 items-center justify-center rounded-2xl bg-gold px-8 text-lg font-bold text-white shadow-sm transition hover:bg-[#9c7a3e] active:scale-[0.99]";
 
 const sectionClass = "mx-auto max-w-6xl px-4 py-10 md:py-14";
+
+/**
+ * The three real photos in the hero. They share one crop (1:2, the mezuzah centred and filling about 80%
+ * of the height), so object-cover shows each one whole, never stretched.
+ */
+const HERO_PHOTOS = [
+  { src: "/images/hero/hero-black-gold.jpg", alt: "מזוזה שחורה עם עיטור להבה זהוב" },
+  { src: "/images/hero/hero-stone-door.jpg", alt: "מזוזה בגוון אבן מותקנת על משקוף הדלת" },
+  { src: "/images/hero/hero-white-gold.jpg", alt: "מזוזה לבנה עם עיטור להבה זהוב" },
+];
 
 function SectionTitle({ id, children, sub }: { id: string; children: ReactNode; sub?: ReactNode }) {
   return (
@@ -74,7 +85,6 @@ export default async function Landing() {
     ? `${settings.closedBackTitle}${settings.closedBackText ? `, ${settings.closedBackText}` : ""}.`
     : "";
   const usageNote = settings?.usageNote ?? "";
-  const heroShots = models.slice(0, 3);
 
   return (
     <>
@@ -97,15 +107,22 @@ export default async function Landing() {
           </Link>
         </div>
 
-        {heroShots.length > 0 && (
-          <ul aria-hidden="true" className="mx-auto mt-8 grid max-w-2xl grid-cols-3 gap-3 sm:gap-5">
-            {heroShots.map((m, i) => (
-              <li key={m.id} className="rounded-2xl border border-line bg-paper p-1.5 shadow-sm sm:p-2">
-                <ModelImage model={m} sizes="(min-width: 640px) 200px, 30vw" preload={i === 0} />
-              </li>
-            ))}
-          </ul>
-        )}
+        <ul data-hero-photos className="mx-auto mt-8 grid max-w-xl grid-cols-3 gap-3 sm:gap-5">
+          {HERO_PHOTOS.map((photo, i) => (
+            <li key={photo.src} className="rounded-2xl border border-line bg-paper p-1.5 shadow-sm sm:p-2">
+              <span className="relative block aspect-[1/2] overflow-hidden rounded-xl bg-white">
+                <Image
+                  src={photo.src}
+                  alt={photo.alt}
+                  fill
+                  preload={i === 0}
+                  sizes="(min-width: 640px) 190px, 30vw"
+                  className="object-cover object-center"
+                />
+              </span>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* ------------------------------------------------------------ why */}
